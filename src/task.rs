@@ -31,37 +31,37 @@ impl PartialEq for dyn ExecutableTask {
 impl Eq for dyn ExecutableTask {}
 
 pub trait Task<I, O>: ExecutableTask {
-    fn set_input(&mut self, task_input: TaskInput<I>);
+    fn set_input(&mut self, task_input: TaskInputHandle<I>);
     fn get_output(task: &dyn ExecutableTask) -> O;
 }
 
-pub struct TaskInput<T> {
-    task_id: usize,
+pub struct TaskInputHandle<T> {
+    source_task_id: usize,
     value_func: fn(&dyn ExecutableTask) -> T,
 }
 
-impl<T> TaskInput<T> {
+impl<T> TaskInputHandle<T> {
     pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> T) -> Self {
-        TaskInput {
-            task_id: id,
+        TaskInputHandle {
+            source_task_id: id,
             value_func: func,
         }
     }
 
     pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> T) {
-        self.task_id = id;
+        self.source_task_id = id;
         self.value_func = func;
     }
 
     pub fn get_value(&self, flow: &Flow) -> T {
-        return (self.value_func)(flow.get_task_by_id(self.task_id));
+        return (self.value_func)(flow.get_task_by_id(self.source_task_id));
     }
 }
 
-impl<T> Debug for TaskInput<T> {
+impl<T> Debug for TaskInputHandle<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TaskInput")
-            .field("task_id", &self.task_id)
+            .field("task_id", &self.source_task_id)
             .field(
                 "value_func",
                 &format_args!("{:p}", self.value_func as *const ()),
