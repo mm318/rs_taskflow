@@ -1,9 +1,16 @@
 [package]
 name = "rs_taskflow"
 version = "0.1.0"
-authors = ["Ted Kassen <tedgkassen@gmail.com>"]
+authors = ["Miaofei <ameision@hotmail.com>"]
 edition = "2018"
 
 [dependencies]
-tokio = "0.1.22"
-futures = "0.1.29"
+tokio = { version = "1.7.1", features = ["rt-multi-thread", "macros"] }
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["rlib", "dylib"]
+
+[[test]]
+name = "flow_test"
+path = "tests/flow_test.rs"

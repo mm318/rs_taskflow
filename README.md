@@ -1,15 +1,32 @@
 # rs_taskflow
-A task runner with dependencies for rust and a half-hearted attempt at recreating https://github.com/cpp-taskflow/cpp-taskflow from a rust beginner. 
+Attempt at recreating https://github.com/cpp-taskflow/cpp-taskflow in Rust. 
 
-Example: 
+
+## Example:
+```rust
+let mut flow = Flow::new();
+
+let a = flow.new_task(DefaultTask::new(1));
+let b = flow.new_task(DefaultTask::new(2));
+let c = flow.new_task(DefaultTask::new(3));
+
+flow.connect(&a, DefaultTask::get_output, &b, DefaultTask::set_input)
+flow.connect(&b, DefaultTask::get_output, &c, DefaultTask::set_input)
+
+let flow_arc = Arc::new(flow);
+flow_arc.start().await;
 ```
-let a = Flow::new_task(DefaultResolveable::new(&(|| -> i32 {1})));
-let b = Flow::new_task(DefaultResolveable::new(&(|| -> i32 {2})));
-let c = Flow::new_task(DefaultResolveable::new(&(|| -> i32 {3})));
 
-Flow::dep(&a, &b);
-Flow::dep(&b, &c);
-let mut flow = Flow::build(vec![&a, &b, &c]);
+For a more complete example, see [flow_test.rs](tests/flow_test.rs).
 
-flow.start();
+
+## Usage
+### Installation
+```bash
+git clone https://github.com/mm318/rs_taskflow.git
+```
+
+### Build and Test
+```bash
+cargo test --all-features -- --nocapture
 ```
