@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 
 use rs_taskflow::flow::Flow;
-use rs_taskflow::task::{Task, TaskInput};
+use rs_taskflow::task::{ExecutableTask, Task, TaskInput};
 
 #[derive(Debug)]
 pub struct DefaultTask {
@@ -17,12 +17,14 @@ impl DefaultTask {
             output: AtomicI32::new(initial_value),
         };
     }
+}
 
+impl Task<i32, i32> for DefaultTask {
     fn set_input(&mut self, task_input: TaskInput<i32>) {
         self.input_getter = Option::Some(task_input);
     }
 
-    fn get_output(task: &dyn Task) -> i32 {
+    fn get_output(task: &dyn ExecutableTask) -> i32 {
         return task
             .as_any()
             .downcast_ref::<Self>()
@@ -32,7 +34,7 @@ impl DefaultTask {
     }
 }
 
-impl Task for DefaultTask {
+impl ExecutableTask for DefaultTask {
     fn exec(&self, flow: &Flow) {
         match &self.input_getter {
             Option::Some(get_input) => {

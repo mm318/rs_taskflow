@@ -18,32 +18,37 @@ impl<T: Any> AsAny for T {
     }
 }
 
-pub trait Task: AsAny + Sync + Send + Debug {
+pub trait ExecutableTask: AsAny + Sync + Send + Debug {
     fn exec(&self, flow: &Flow);
 }
 
-impl PartialEq for dyn Task {
+impl PartialEq for dyn ExecutableTask {
     fn eq(&self, other: &Self) -> bool {
         self == other
     }
 }
 
-impl Eq for dyn Task {}
+impl Eq for dyn ExecutableTask {}
+
+pub trait Task<I, O>: ExecutableTask {
+    fn set_input(&mut self, task_input: TaskInput<I>);
+    fn get_output(task: &dyn ExecutableTask) -> O;
+}
 
 pub struct TaskInput<T> {
     task_id: usize,
-    value_func: fn(&dyn Task) -> T,
+    value_func: fn(&dyn ExecutableTask) -> T,
 }
 
 impl<T> TaskInput<T> {
-    pub fn new(id: usize, func: fn(&dyn Task) -> T) -> Self {
+    pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> T) -> Self {
         TaskInput {
             task_id: id,
             value_func: func,
         }
     }
 
-    pub fn set(&mut self, id: usize, func: fn(&dyn Task) -> T) {
+    pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> T) {
         self.task_id = id;
         self.value_func = func;
     }

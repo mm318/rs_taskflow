@@ -9,7 +9,7 @@ use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::dag::Dag;
-use crate::task::{Task, TaskInput};
+use crate::task::{ExecutableTask, TaskInput};
 
 pub trait TaskType {
     type TaskType;
@@ -31,7 +31,7 @@ impl<T> TaskHandle<T> {
 }
 
 pub struct Flow {
-    dag: Dag<Box<dyn Task>>,
+    dag: Dag<Box<dyn ExecutableTask>>,
 }
 
 struct ExecTaskJoinHandle {
@@ -115,7 +115,7 @@ impl Flow {
         Flow { dag: Dag::new() }
     }
 
-    pub fn new_task<B: Task>(&mut self, new_task: B) -> TaskHandle<B> {
+    pub fn new_task<B: ExecutableTask>(&mut self, new_task: B) -> TaskHandle<B> {
         let id = self.dag.add_node(Box::new(new_task));
         TaskHandle {
             task_id: id,
@@ -123,11 +123,11 @@ impl Flow {
         }
     }
 
-    pub fn get_task_by_id(&self, task_id: usize) -> &dyn Task {
+    pub fn get_task_by_id(&self, task_id: usize) -> &dyn ExecutableTask {
         return &**self.dag.get_node(task_id).get_value();
     }
 
-    pub fn get_task<B>(&self, task_handle: &TaskHandle<B>) -> &dyn Task {
+    pub fn get_task<B>(&self, task_handle: &TaskHandle<B>) -> &dyn ExecutableTask {
         self.get_task_by_id(task_handle.id())
     }
 
@@ -149,10 +149,10 @@ impl Flow {
             .unwrap();
     }
 
-    pub fn connect<A: Task, B: Task, T: Default>(
+    pub fn connect<A: ExecutableTask, B: ExecutableTask, T: Default>(
         &mut self,
         task1_handle: &TaskHandle<A>,
-        task1_output: fn(&dyn Task) -> T,
+        task1_output: fn(&dyn ExecutableTask) -> T,
         task2_handle: &TaskHandle<B>,
         task2_input: fn(&mut B, TaskInput<T>),
     ) {
