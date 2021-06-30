@@ -26,7 +26,7 @@ impl<T> TaskType for TaskHandle<T> {
 
 impl<T> TaskHandle<T> {
     pub fn id(&self) -> usize {
-        return self.task_id;
+        self.task_id
     }
 }
 
@@ -46,10 +46,10 @@ struct ExecTask {
 
 impl ExecTask {
     fn new() -> Self {
-        return ExecTask {
+        ExecTask {
             lock: Mutex::new(Option::None),
             condvar: Condvar::new(),
-        };
+        }
     }
 
     fn lock(&self) -> MutexGuard<Option<ExecTaskJoinHandle>> {
@@ -106,21 +106,21 @@ impl Future for ExecTaskFuture {
             .completed = true;
         self.futures[self.node_id].notify();
 
-        return Poll::Ready(());
+        Poll::Ready(())
     }
 }
 
 impl Flow {
     pub fn new() -> Self {
-        return Flow { dag: Dag::new() };
+        Flow { dag: Dag::new() }
     }
 
     pub fn new_task<B: Task>(&mut self, new_task: B) -> TaskHandle<B> {
         let id = self.dag.add_node(Box::new(new_task));
-        return TaskHandle {
+        TaskHandle {
             task_id: id,
             data_type: PhantomData,
-        };
+        }
     }
 
     pub fn get_task_by_id(&self, task_id: usize) -> &dyn Task {
@@ -128,16 +128,16 @@ impl Flow {
     }
 
     pub fn get_task<B>(&self, task_handle: &TaskHandle<B>) -> &dyn Task {
-        return self.get_task_by_id(task_handle.id());
+        self.get_task_by_id(task_handle.id())
     }
 
-    fn get_concrete_task<B: Any>(&self, task_handle: &TaskHandle<B>) -> &B {
-        return self
-            .get_task(task_handle)
-            .as_any()
-            .downcast_ref::<B>()
-            .unwrap();
-    }
+    // fn get_concrete_task<B: Any>(&self, task_handle: &TaskHandle<B>) -> &B {
+    //     return self
+    //         .get_task(task_handle)
+    //         .as_any()
+    //         .downcast_ref::<B>()
+    //         .unwrap();
+    // }
 
     fn get_mut_concrete_task<B: Any>(&mut self, task_handle: &TaskHandle<B>) -> &mut B {
         return self
@@ -170,7 +170,7 @@ impl Flow {
 
         let future_task = task::spawn(ExecTaskFuture {
             flow: self,
-            node_id: node_id,
+            node_id,
             futures: futures.clone(),
         });
         *futures[node_id].lock() = Option::Some(ExecTaskJoinHandle {
@@ -198,24 +198,17 @@ impl Flow {
         let futures_vec_arc = Arc::new(futures_vec);
 
         let mut bfs = self.dag.build_bfs().unwrap();
-        loop {
-            match self.dag.next_in_bfs(&bfs) {
-                Some(ref node) => {
-                    if cfg!(debug_assertions) {
-                        println!("  Visiting {:?}", node);
-                    }
-
-                    self.dag.visited_in_bfs(&mut bfs, node);
-
-                    let self_copy = self.clone();
-                    let node_id = *node.get_id();
-                    let futures_vec_copy = futures_vec_arc.clone();
-                    self_copy.spawn_exec_task(node_id, futures_vec_copy);
-                }
-                None => {
-                    break;
-                }
+        while let Some(ref node) = self.dag.next_in_bfs(&bfs) {
+            if cfg!(debug_assertions) {
+                println!("  Visiting {:?}", node);
             }
+
+            self.dag.visited_in_bfs(&mut bfs, node);
+
+            let self_copy = self.clone();
+            let node_id = *node.get_id();
+            let futures_vec_copy = futures_vec_arc.clone();
+            self_copy.spawn_exec_task(node_id, futures_vec_copy);
         }
 
         for future_iter in futures_vec_arc.iter() {
@@ -224,5 +217,11 @@ impl Flow {
                 locked_guard = future_iter.condvar.wait(locked_guard).unwrap();
             }
         }
+    }
+}
+
+impl Default for Flow {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -34,14 +34,14 @@ impl<T: Eq + Debug> Node<T> {
     }
 
     pub fn get_id(&self) -> &usize {
-        return &self.id;
+        &self.id
     }
 
     pub fn get_value(&self) -> &T {
-        return &self.value;
+        &self.value
     }
 
     pub fn get_mut_value(&mut self) -> &mut T {
-        return &mut self.value;
+        &mut self.value
     }
 }

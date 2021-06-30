@@ -11,10 +11,10 @@ pub trait AsAny: Any {
 
 impl<T: Any> AsAny for T {
     fn as_any(&self) -> &dyn Any {
-        return self;
+        self
     }
     fn as_mut_any(&mut self) -> &mut dyn Any {
-        return self;
+        self
     }
 }
 
@@ -24,7 +24,7 @@ pub trait Task: AsAny + Sync + Send + Debug {
 
 impl PartialEq for dyn Task {
     fn eq(&self, other: &Self) -> bool {
-        return self == other;
+        self == other
     }
 }
 
@@ -37,10 +37,10 @@ pub struct TaskInput<T> {
 
 impl<T> TaskInput<T> {
     pub fn new(id: usize, func: fn(&dyn Task) -> T) -> Self {
-        return TaskInput {
+        TaskInput {
             task_id: id,
             value_func: func,
-        };
+        }
     }
 
     pub fn set(&mut self, id: usize, func: fn(&dyn Task) -> T) {

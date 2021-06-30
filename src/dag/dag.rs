@@ -32,7 +32,7 @@ impl DagVisitationInfo {
         result.dependencies.resize(len, HashSet::new());
         result.dependants.resize(len, HashSet::new());
 
-        return result;
+        result
     }
 
     fn check(self) -> Result<Self, &'static str> {
@@ -45,9 +45,9 @@ impl DagVisitationInfo {
             .iter()
             .all(|root_id| self._check(root_id, &mut HashMap::new()))
         {
-            return Ok(self);
+            Ok(self)
         } else {
-            return Err("Invalid DAG detected");
+            Err("Invalid DAG detected")
         }
     }
 
@@ -73,7 +73,7 @@ impl DagVisitationInfo {
 
         visited.insert(*curr_node_id, CycleCheckStatus::Processed);
 
-        return true;
+        true
     }
 
     // dependencies are upstream
@@ -104,11 +104,11 @@ impl DagVisitationInfo {
     }
 
     fn get_roots(&self) -> &HashSet<usize> {
-        return &self.roots;
+        &self.roots
     }
 
     fn get_dependencies(&self, node_id: &usize) -> &HashSet<usize> {
-        return &self.dependencies[*node_id];
+        &self.dependencies[*node_id]
     }
 
     // fn remove_dependency(&mut self, from_node_id: &usize, to_node_id: &usize) {
@@ -116,7 +116,7 @@ impl DagVisitationInfo {
     // }
 
     fn get_dependants(&self, node_id: &usize) -> &HashSet<usize> {
-        return &self.dependants[*node_id];
+        &self.dependants[*node_id]
     }
 }
 
@@ -124,22 +124,21 @@ impl DagVisitationInfo {
 pub struct Dag<T: Eq + Debug> {
     nodes: Vec<Node<T>>,
     dependencies: Vec<HashSet<usize>>,
-    // edges: Vec<(usize, usize)>, // (from_node_id, to_node_id)
 }
 
 impl<T: Eq + Debug> Dag<T> {
     pub fn new() -> Self {
-        return Dag {
+        Dag {
             nodes: Vec::new(),
             dependencies: Vec::new(),
-        };
+        }
     }
 
     pub fn add_node(&mut self, value: T) -> usize {
         let id = self.nodes.len();
         self.nodes.push(Node::new(id, value));
         self.dependencies.push(HashSet::new());
-        return id;
+        id
     }
 
     pub fn connect(&mut self, from_node_id: usize, to_node_id: usize) {
@@ -148,23 +147,23 @@ impl<T: Eq + Debug> Dag<T> {
 
     pub fn get_num_nodes(&self) -> usize {
         assert_eq!(self.nodes.len(), self.dependencies.len());
-        return self.nodes.len();
+        self.nodes.len()
     }
 
     pub fn get_node(&self, node_id: usize) -> &Node<T> {
-        return &self.nodes[node_id];
+        &self.nodes[node_id]
     }
 
     pub fn get_mut_node(&mut self, node_id: usize) -> &mut Node<T> {
-        return &mut self.nodes[node_id];
+        &mut self.nodes[node_id]
     }
 
     pub fn iter_nodes(&self) -> Iter<'_, Node<T>> {
-        return self.nodes.iter();
+        self.nodes.iter()
     }
 
     pub fn get_dependencies(&self, node_id: &usize) -> &HashSet<usize> {
-        return &self.dependencies[*node_id];
+        &self.dependencies[*node_id]
     }
 
     // find roots
@@ -183,14 +182,14 @@ impl<T: Eq + Debug> Dag<T> {
             }
         }
 
-        return bfs.check();
+        bfs.check()
     }
 
     pub fn next_in_bfs(&self, visitation_info: &DagVisitationInfo) -> Option<&Node<T>> {
-        return match visitation_info.get_next_root() {
+        match visitation_info.get_next_root() {
             Some(id) => Some(&self.get_node(*id)),
             None => None,
-        };
+        }
     }
 
     pub fn visited_in_bfs(&self, visitation_info: &mut DagVisitationInfo, node: &Node<T>) {
@@ -205,6 +204,12 @@ impl<T: Eq + Debug> Dag<T> {
                 visitation_info.roots.insert(*id);
             }
         }
+    }
+}
+
+impl<T: Eq + Debug> Default for Dag<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
