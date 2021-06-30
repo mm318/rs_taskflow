@@ -186,7 +186,7 @@ impl Flow {
         // }
     }
 
-    pub async fn start(self: Arc<Flow>) {
+    pub fn start(self: Arc<Flow>) {
         let mut futures_vec = Vec::<ExecTask>::with_capacity(self.dag.get_num_nodes());
 
         // futures_vec.resize(self.dag.get_num_nodes(), Mutex::new(Option::None));

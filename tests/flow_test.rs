@@ -84,7 +84,7 @@ async fn main() {
         println!("Executing model");
     }
     let flow_arc = Arc::new(flow);
-    flow_arc.clone().start().await;
+    flow_arc.clone().start();
 
     //
     // get the result of the system
