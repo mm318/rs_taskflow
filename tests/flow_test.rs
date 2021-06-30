@@ -2,44 +2,47 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 
 use rs_taskflow::flow::Flow;
-use rs_taskflow::task::{ExecutableTask, Task, TaskInput};
+use rs_taskflow::task::{ExecutableTask, Task, TaskInputHandle};
 
 #[derive(Debug)]
 pub struct DefaultTask {
-    input_getter: Option<TaskInput<i32>>,
+    input_handle: Option<TaskInputHandle<i32>>,
     output: AtomicI32,
 }
 
 impl DefaultTask {
     pub fn new(initial_value: i32) -> Self {
         return Self {
-            input_getter: Option::None,
+            input_handle: Option::None,
             output: AtomicI32::new(initial_value),
         };
+    }
+
+    fn perform_task(&self, input: i32) {
+        self.output.store(input, Ordering::Relaxed);
+    }
+
+    fn output(&self) -> i32 {
+        self.output.load(Ordering::Relaxed)
     }
 }
 
 impl Task<i32, i32> for DefaultTask {
-    fn set_input(&mut self, task_input: TaskInput<i32>) {
-        self.input_getter = Option::Some(task_input);
+    fn set_input(&mut self, task_input: TaskInputHandle<i32>) {
+        self.input_handle = Option::Some(task_input);
     }
 
     fn get_output(task: &dyn ExecutableTask) -> i32 {
-        return task
-            .as_any()
-            .downcast_ref::<Self>()
-            .unwrap()
-            .output
-            .load(Ordering::Relaxed);
+        return task.as_any().downcast_ref::<Self>().unwrap().output();
     }
 }
 
 impl ExecutableTask for DefaultTask {
     fn exec(&self, flow: &Flow) {
-        match &self.input_getter {
-            Option::Some(get_input) => {
-                let input = get_input.get_value(flow);
-                self.output.store(input, Ordering::Relaxed);
+        match &self.input_handle {
+            Option::Some(input) => {
+                let input_val = input.get_value(flow);
+                self.perform_task(input_val);
             }
             Option::None => {
                 // no-op
@@ -66,18 +69,8 @@ async fn main() {
     if cfg!(debug_assertions) {
         println!("Connecting dependent tasks");
     }
-    flow.connect(
-        &input_task_handle,
-        DefaultTask::get_output,
-        &task1_handle,
-        DefaultTask::set_input,
-    );
-    flow.connect(
-        &task1_handle,
-        DefaultTask::get_output,
-        &task2_handle,
-        DefaultTask::set_input,
-    );
+    flow.connect(&input_task_handle, &task1_handle);
+    flow.connect(&task1_handle, &task2_handle);
 
     //
     // run the system for 3 time steps
