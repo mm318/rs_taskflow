@@ -72,13 +72,8 @@ impl Future for ExecTaskFuture {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         for from_node_id in self.flow.dag.get_dependencies(&self.node_id) {
-            if cfg!(debug_assertions) {
-                match *self.futures[*from_node_id].lock() {
-                    Option::Some(_) => {}
-                    Option::None => {
-                        println!("Node {} is missing a future / join handle!", *from_node_id)
-                    }
-                }
+            if cfg!(debug_assertions) && self.futures[*from_node_id].lock().is_none() {
+                println!("Node {} is missing a future / join handle!", *from_node_id)
             }
 
             let mut locked_guard = self.futures[*from_node_id].lock();
@@ -164,13 +159,13 @@ impl Flow {
         //     println!("Adding future for node {}", node_id);
         // }
 
-        let future_task = task::spawn(ExecTaskFuture {
+        let task_future = task::spawn(ExecTaskFuture {
             flow: self,
             node_id,
             futures: futures.clone(),
         });
         *futures[node_id].lock() = Option::Some(ExecTaskJoinHandle {
-            join_handle: future_task,
+            join_handle: task_future,
             completed: false,
         });
 
@@ -182,7 +177,7 @@ impl Flow {
         // }
     }
 
-    pub async fn start(self: Arc<Flow>) {
+    pub fn start(self: Arc<Flow>) {
         let mut futures_vec = Vec::<ExecTask>::with_capacity(self.dag.get_num_nodes());
 
         // futures_vec.resize(self.dag.get_num_nodes(), Mutex::new(Option::None));
