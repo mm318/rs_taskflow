@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 
 use rs_taskflow::flow::Flow;
-use rs_taskflow::task::{ExecutableTask, Task, TaskInputHandle};
+use rs_taskflow::task::{ExecutableTask, TaskInput0, TaskInputHandle, TaskOutput0};
 
 #[derive(Debug)]
 pub struct DefaultTask {
@@ -27,12 +27,14 @@ impl DefaultTask {
     }
 }
 
-impl Task<i32, i32> for DefaultTask {
-    fn set_input(&mut self, task_input: TaskInputHandle<i32>) {
+impl TaskInput0<i32> for DefaultTask {
+    fn set_input_0(&mut self, task_input: TaskInputHandle<i32>) {
         self.input_handle = Option::Some(task_input);
     }
+}
 
-    fn get_output(task: &dyn ExecutableTask) -> i32 {
+impl TaskOutput0<i32> for DefaultTask {
+    fn get_output_0(task: &dyn ExecutableTask) -> i32 {
         return task.as_any().downcast_ref::<Self>().unwrap().output();
     }
 }
@@ -84,7 +86,7 @@ async fn main() {
     //
     // get the result of the system
     //
-    let result = DefaultTask::get_output(flow_arc.get_task(&task2_handle));
+    let result = DefaultTask::get_output_0(flow_arc.get_task(&task2_handle));
     println!("result: {}", result);
     assert_eq!(result, 42);
 }

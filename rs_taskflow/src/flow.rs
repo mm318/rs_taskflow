@@ -9,7 +9,7 @@ use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::dag::Dag;
-use crate::task::{ExecutableTask, Task, TaskInputHandle};
+use crate::task::{ExecutableTask, TaskInput0, TaskInputHandle, TaskOutput0};
 
 pub trait TaskType {
     type TaskType;
@@ -110,7 +110,10 @@ impl Flow {
         Flow { dag: Dag::new() }
     }
 
-    pub fn new_task<I, O, B: Task<I, O>>(&mut self, new_task: B) -> TaskHandle<B> {
+    pub fn new_task<I, O, B: TaskInput0<I> + TaskOutput0<O>>(
+        &mut self,
+        new_task: B,
+    ) -> TaskHandle<B> {
         let id = self.dag.add_node(Box::new(new_task));
         TaskHandle {
             task_id: id,
@@ -144,13 +147,19 @@ impl Flow {
             .unwrap();
     }
 
-    pub fn connect<I, T, O, A: Task<I, T>, B: Task<T, O>>(
+    pub fn connect<
+        I,
+        T,
+        O,
+        A: TaskInput0<I> + TaskOutput0<T>,
+        B: TaskInput0<T> + TaskOutput0<O>,
+    >(
         &mut self,
         task1_handle: &TaskHandle<A>,
         task2_handle: &TaskHandle<B>,
     ) {
         self.get_mut_concrete_task(task2_handle)
-            .set_input(TaskInputHandle::new(task1_handle.id(), A::get_output));
+            .set_input_0(TaskInputHandle::new(task1_handle.id(), A::get_output_0));
         self.dag.connect(task1_handle.id(), task2_handle.id());
     }
 
