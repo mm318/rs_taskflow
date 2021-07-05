@@ -110,10 +110,10 @@ impl Flow {
         Flow { dag: Dag::new() }
     }
 
-    pub fn new_task<I, O, B: TaskInput0<I> + TaskOutput0<O>>(
+    pub fn new_task<I, O, T: TaskInput0<I> + TaskOutput0<O>>(
         &mut self,
-        new_task: B,
-    ) -> TaskHandle<B> {
+        new_task: T,
+    ) -> TaskHandle<T> {
         let id = self.dag.add_node(Box::new(new_task));
         TaskHandle {
             task_id: id,
@@ -125,7 +125,7 @@ impl Flow {
         return &**self.dag.get_node(task_id).get_value();
     }
 
-    pub fn get_task<B>(&self, task_handle: &TaskHandle<B>) -> &dyn ExecutableTask {
+    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> &dyn ExecutableTask {
         self.get_task_by_id(task_handle.id())
     }
 
@@ -137,13 +137,13 @@ impl Flow {
     //         .unwrap();
     // }
 
-    fn get_mut_concrete_task<B: Any>(&mut self, task_handle: &TaskHandle<B>) -> &mut B {
+    fn get_mut_concrete_task<T: Any>(&mut self, task_handle: &TaskHandle<T>) -> &mut T {
         return self
             .dag
             .get_mut_node(task_handle.id())
             .get_mut_value()
             .as_mut_any()
-            .downcast_mut::<B>()
+            .downcast_mut::<T>()
             .unwrap();
     }
 
