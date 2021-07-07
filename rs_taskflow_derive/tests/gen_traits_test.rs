@@ -1,8 +1,9 @@
 use rs_taskflow::flow::Flow;
 use rs_taskflow::task::{ExecutableTask, TaskInputHandle};
+use rs_taskflow_derive::{generate_task_input_iface_traits, generate_task_output_iface_traits};
 
-rs_taskflow_derive::generate_task_input_iface_traits!(TaskInput, set_input, 4);
-rs_taskflow_derive::generate_task_output_iface_traits!(TaskOutput, get_output, 4);
+generate_task_input_iface_traits!(TaskInput, set_input, 4);
+generate_task_output_iface_traits!(TaskOutput, get_output, 4);
 
 #[derive(Debug)]
 struct TestTask {}

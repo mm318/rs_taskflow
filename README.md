@@ -21,6 +21,7 @@ For a more complete example, see [flow_test.rs](tests/flow_test.rs).
 
 
 ## Usage
+
 ### Installation
 ```bash
 git clone https://github.com/mm318/rs_taskflow.git
@@ -30,3 +31,8 @@ git clone https://github.com/mm318/rs_taskflow.git
 ```bash
 cargo test --all-features -- --nocapture
 ```
+
+
+## Requirements
+
+Tested using Rust 1.53.
