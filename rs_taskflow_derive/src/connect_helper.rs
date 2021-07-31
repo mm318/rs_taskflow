@@ -40,7 +40,9 @@ impl Parse for ConnectTasksOptions {
     }
 }
 
-pub(super) fn generate_connect_task_ports_snippet(options: &ConnectTasksOptions) -> proc_macro2::TokenStream {
+pub(super) fn generate_connect_task_ports_snippet(
+    options: &ConnectTasksOptions,
+) -> proc_macro2::TokenStream {
     let ConnectTasksOptions {
         flow_name,
         task1_handle_name,

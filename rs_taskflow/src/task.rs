@@ -19,6 +19,7 @@ impl<T: Any> AsAny for T {
 }
 
 pub trait ExecutableTask: AsAny + Sync + Send + Debug {
+    // type TaskType = Self;
     fn exec(&self, flow: &Flow);
 }
 
@@ -30,8 +31,8 @@ impl PartialEq for dyn ExecutableTask {
 
 impl Eq for dyn ExecutableTask {}
 
-rs_taskflow_derive::generate_task_input_iface_traits!(TaskInput, set_input, 1);
-rs_taskflow_derive::generate_task_output_iface_traits!(TaskOutput, get_output, 1);
+rs_taskflow_derive::generate_task_input_iface_traits!(TaskInput, set_input, 16);
+rs_taskflow_derive::generate_task_output_iface_traits!(TaskOutput, get_output, 16);
 
 pub struct TaskInputHandle<T> {
     source_task_id: usize,
