@@ -10,8 +10,8 @@ let a = flow.new_task(DefaultTask::new(1));
 let b = flow.new_task(DefaultTask::new(2));
 let c = flow.new_task(DefaultTask::new(3));
 
-flow.connect(&a, DefaultTask::get_output, &b, DefaultTask::set_input)
-flow.connect(&b, DefaultTask::get_output, &c, DefaultTask::set_input)
+flow.connect_output0_to_input0(&a, &b);
+flow.connect_output0_to_input0(&b, &c);
 
 let flow_arc = Arc::new(flow);
 flow_arc.start().await;

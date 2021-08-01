@@ -63,14 +63,7 @@ pub(super) fn generate_connect_tasks_func(
             task1_handle: &TaskHandle<A>,
             task2_handle: &TaskHandle<B>,
         ) {
-            // self.connect(task1_handle, A::#output_func_name, task2_handle, B::#input_func_name);
-            let task1_output: fn(&dyn ExecutableTask) -> T = A::#output_func_name;
-            let task2_input: fn(&mut B, TaskInputHandle<T>) = B::#input_func_name;
-            (task2_input)(
-                self.get_mut_concrete_task(task2_handle),
-                TaskInputHandle::new(task1_handle.id(), task1_output),
-            );
-            self.dag.connect(task1_handle.id(), task2_handle.id());
+            self.connect(task1_handle, A::#output_func_name, task2_handle, B::#input_func_name);
         }
     }
 }
