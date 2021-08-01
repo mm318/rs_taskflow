@@ -208,10 +208,11 @@ async fn main() {
     //
     // create system components
     //
+    type TestAdder = AdderTask<i32, u8, i64>;
     let task1_handle = flow.new_task(ForwardDataTask::new(1 as i32));
     let task2_handle = flow.new_task(ForwardDataTask::new(2 as u8));
     let input_task_handle = flow.new_task(ConstTask::new(42 as i32, 8 as u8));
-    let last_task_handle = flow.new_task(AdderTask::<i32, u8, i64>::new(0));
+    let last_task_handle = flow.new_task(TestAdder::new(0));
 
     //
     // hook up system components
@@ -219,7 +220,7 @@ async fn main() {
     if cfg!(debug_assertions) {
         println!("Connecting dependent tasks");
     }
-    flow.connect_0_0(&input_task_handle, &task1_handle);
+    flow.connect_output0_to_input0(&input_task_handle, &task1_handle);
     flow.connect_output1_to_input0(&input_task_handle, &task2_handle);
     flow.connect_output0_to_input0(&task1_handle, &last_task_handle);
     flow.connect_output0_to_input1(&task2_handle, &last_task_handle);
@@ -236,7 +237,7 @@ async fn main() {
     //
     // get the result of the system
     //
-    let result = AdderTask::<i32, u8, i64>::get_output_0(flow_arc.get_task(&last_task_handle));
+    let result = TestAdder::get_output_0(flow_arc.get_task(&last_task_handle));
     println!("result: {}", result);
     assert_eq!(result, 50);
 }

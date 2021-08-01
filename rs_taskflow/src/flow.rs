@@ -152,20 +152,6 @@ impl Flow {
 
     rs_taskflow_derive::generate_connect_tasks_funcs!(10);
 
-    pub fn connect_0_0<T, A: TaskOutput0<T>, B: TaskInput0<T>>(
-        &mut self,
-        task1_handle: &TaskHandle<A>,
-        task2_handle: &TaskHandle<B>,
-    ) {
-        let task1_output: fn(&dyn ExecutableTask) -> T = A::get_output_0;
-        let task2_input: fn(&mut B, TaskInputHandle<T>) = B::set_input_0;
-        (task2_input)(
-            self.get_mut_concrete_task(task2_handle),
-            TaskInputHandle::new(task1_handle.id(), task1_output),
-        );
-        self.dag.connect(task1_handle.id(), task2_handle.id());
-    }
-
     fn spawn_exec_task(self: Arc<Flow>, node_id: usize, futures: Arc<Vec<ExecTask>>) {
         // if cfg!(debug_assertions) {
         //     println!("Adding future for node {}", node_id);

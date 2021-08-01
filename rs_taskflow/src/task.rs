@@ -1,20 +1,24 @@
-use std::any::Any;
 use std::fmt::Debug;
 use std::marker::Send;
 
 use crate::flow::Flow;
+use crate::task::private::AsAny;
 
-pub trait AsAny: Any {
-    fn as_any(&self) -> &dyn Any;
-    fn as_mut_any(&mut self) -> &mut dyn Any;
-}
+mod private {
+    use std::any::Any;
 
-impl<T: Any> AsAny for T {
-    fn as_any(&self) -> &dyn Any {
-        self
+    pub trait AsAny: Any {
+        fn as_any(&self) -> &dyn Any;
+        fn as_mut_any(&mut self) -> &mut dyn Any;
     }
-    fn as_mut_any(&mut self) -> &mut dyn Any {
-        self
+
+    impl<T: Any> AsAny for T {
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+        fn as_mut_any(&mut self) -> &mut dyn Any {
+            self
+        }
     }
 }
 
