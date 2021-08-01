@@ -1,6 +1,12 @@
-use rs_taskflow::flow::Flow;
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
+use rs_taskflow::flow::{Flow, TaskHandle};
 use rs_taskflow::task::{ExecutableTask, TaskInputHandle};
-use rs_taskflow_derive::{generate_task_input_iface_traits, generate_task_output_iface_traits};
+use rs_taskflow_derive::{
+    generate_connect_tasks_funcs, generate_task_input_iface_traits,
+    generate_task_output_iface_traits,
+};
 
 generate_task_input_iface_traits!(TaskInput, set_input, 4);
 generate_task_output_iface_traits!(TaskOutput, get_output, 4);
@@ -62,7 +68,24 @@ impl TaskOutput3<i32, u32, String, Option<bool>> for TestTask {
     }
 }
 
+struct FakeFlow {}
+
+impl FakeFlow {
+    fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T>(
+        &mut self,
+        _task1_handle: &TaskHandle<A>,
+        _task1_output: fn(&dyn ExecutableTask) -> T,
+        _task2_handle: &TaskHandle<B>,
+        _task2_input: fn(&mut B, TaskInputHandle<T>),
+    ) {
+        unimplemented!()
+    }
+
+    rs_taskflow_derive::generate_connect_tasks_funcs!(4);
+}
+
 #[test]
 fn works() {
     let _task = TestTask {};
+    let _flow = FakeFlow {};
 }
