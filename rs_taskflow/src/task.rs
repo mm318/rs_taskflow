@@ -1,24 +1,29 @@
-use std::any::Any;
 use std::fmt::Debug;
 use std::marker::Send;
 
 use crate::flow::Flow;
+use crate::task::private::AsAny;
 
-pub trait AsAny: Any {
-    fn as_any(&self) -> &dyn Any;
-    fn as_mut_any(&mut self) -> &mut dyn Any;
-}
+mod private {
+    use std::any::Any;
 
-impl<T: Any> AsAny for T {
-    fn as_any(&self) -> &dyn Any {
-        self
+    pub trait AsAny: Any {
+        fn as_any(&self) -> &dyn Any;
+        fn as_mut_any(&mut self) -> &mut dyn Any;
     }
-    fn as_mut_any(&mut self) -> &mut dyn Any {
-        self
+
+    impl<T: Any> AsAny for T {
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+        fn as_mut_any(&mut self) -> &mut dyn Any {
+            self
+        }
     }
 }
 
 pub trait ExecutableTask: AsAny + Sync + Send + Debug {
+    // type TaskType = Self;
     fn exec(&self, flow: &Flow);
 }
 
@@ -30,10 +35,8 @@ impl PartialEq for dyn ExecutableTask {
 
 impl Eq for dyn ExecutableTask {}
 
-pub trait Task<I, O>: ExecutableTask {
-    fn set_input(&mut self, task_input: TaskInputHandle<I>);
-    fn get_output(task: &dyn ExecutableTask) -> O;
-}
+rs_taskflow_derive::generate_task_input_iface_traits!(TaskInput, set_input, 10);
+rs_taskflow_derive::generate_task_output_iface_traits!(TaskOutput, get_output, 10);
 
 pub struct TaskInputHandle<T> {
     source_task_id: usize,
@@ -60,8 +63,8 @@ impl<T> TaskInputHandle<T> {
 
 impl<T> Debug for TaskInputHandle<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TaskInput")
-            .field("task_id", &self.source_task_id)
+        f.debug_struct("TaskInputHandle")
+            .field("source_task_id", &self.source_task_id)
             .field(
                 "value_func",
                 &format_args!("{:p}", self.value_func as *const ()),

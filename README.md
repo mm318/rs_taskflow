@@ -10,8 +10,8 @@ let a = flow.new_task(DefaultTask::new(1));
 let b = flow.new_task(DefaultTask::new(2));
 let c = flow.new_task(DefaultTask::new(3));
 
-flow.connect(&a, DefaultTask::get_output, &b, DefaultTask::set_input)
-flow.connect(&b, DefaultTask::get_output, &c, DefaultTask::set_input)
+flow.connect_output0_to_input0(&a, &b);
+flow.connect_output0_to_input0(&b, &c);
 
 let flow_arc = Arc::new(flow);
 flow_arc.start().await;
@@ -21,6 +21,7 @@ For a more complete example, see [flow_test.rs](tests/flow_test.rs).
 
 
 ## Usage
+
 ### Installation
 ```bash
 git clone https://github.com/mm318/rs_taskflow.git
@@ -30,3 +31,8 @@ git clone https://github.com/mm318/rs_taskflow.git
 ```bash
 cargo test --all-features -- --nocapture
 ```
+
+
+## Requirements
+
+Tested using Rust 1.53.

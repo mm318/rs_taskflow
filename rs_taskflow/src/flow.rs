@@ -9,19 +9,11 @@ use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::dag::Dag;
-use crate::task::{ExecutableTask, Task, TaskInputHandle};
-
-pub trait TaskType {
-    type TaskType;
-}
+use crate::task::*;
 
 pub struct TaskHandle<T> {
     task_id: usize,
     data_type: PhantomData<T>,
-}
-
-impl<T> TaskType for TaskHandle<T> {
-    type TaskType = T;
 }
 
 impl<T> TaskHandle<T> {
@@ -72,13 +64,8 @@ impl Future for ExecTaskFuture {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         for from_node_id in self.flow.dag.get_dependencies(&self.node_id) {
-            if cfg!(debug_assertions) {
-                match *self.futures[*from_node_id].lock() {
-                    Option::Some(_) => {}
-                    Option::None => {
-                        println!("Node {} is missing a future / join handle!", *from_node_id)
-                    }
-                }
+            if cfg!(debug_assertions) && self.futures[*from_node_id].lock().is_none() {
+                println!("Node {} is missing a future / join handle!", *from_node_id)
             }
 
             let mut locked_guard = self.futures[*from_node_id].lock();
@@ -115,7 +102,7 @@ impl Flow {
         Flow { dag: Dag::new() }
     }
 
-    pub fn new_task<I, O, B: Task<I, O>>(&mut self, new_task: B) -> TaskHandle<B> {
+    pub fn new_task<O, T: TaskOutput0<O>>(&mut self, new_task: T) -> TaskHandle<T> {
         let id = self.dag.add_node(Box::new(new_task));
         TaskHandle {
             task_id: id,
@@ -127,7 +114,7 @@ impl Flow {
         return &**self.dag.get_node(task_id).get_value();
     }
 
-    pub fn get_task<B>(&self, task_handle: &TaskHandle<B>) -> &dyn ExecutableTask {
+    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> &dyn ExecutableTask {
         self.get_task_by_id(task_handle.id())
     }
 
@@ -139,38 +126,44 @@ impl Flow {
     //         .unwrap();
     // }
 
-    fn get_mut_concrete_task<B: Any>(&mut self, task_handle: &TaskHandle<B>) -> &mut B {
+    fn get_mut_concrete_task<T: Any>(&mut self, task_handle: &TaskHandle<T>) -> &mut T {
         return self
             .dag
             .get_mut_node(task_handle.id())
             .get_mut_value()
             .as_mut_any()
-            .downcast_mut::<B>()
+            .downcast_mut::<T>()
             .unwrap();
     }
 
-    pub fn connect<I, T, O, A: Task<I, T>, B: Task<T, O>>(
+    fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T>(
         &mut self,
         task1_handle: &TaskHandle<A>,
+        task1_output: fn(&dyn ExecutableTask) -> T,
         task2_handle: &TaskHandle<B>,
+        task2_input: fn(&mut B, TaskInputHandle<T>),
     ) {
-        self.get_mut_concrete_task(task2_handle)
-            .set_input(TaskInputHandle::new(task1_handle.id(), A::get_output));
+        (task2_input)(
+            self.get_mut_concrete_task(task2_handle),
+            TaskInputHandle::new(task1_handle.id(), task1_output),
+        );
         self.dag.connect(task1_handle.id(), task2_handle.id());
     }
+
+    rs_taskflow_derive::generate_connect_tasks_funcs!(10);
 
     fn spawn_exec_task(self: Arc<Flow>, node_id: usize, futures: Arc<Vec<ExecTask>>) {
         // if cfg!(debug_assertions) {
         //     println!("Adding future for node {}", node_id);
         // }
 
-        let future_task = task::spawn(ExecTaskFuture {
+        let task_future = task::spawn(ExecTaskFuture {
             flow: self,
             node_id,
             futures: futures.clone(),
         });
         *futures[node_id].lock() = Option::Some(ExecTaskJoinHandle {
-            join_handle: future_task,
+            join_handle: task_future,
             completed: false,
         });
 
