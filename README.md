@@ -1,6 +1,8 @@
 # rs_taskflow
 Attempt at recreating https://github.com/cpp-taskflow/cpp-taskflow in Rust. 
 
+![build](https://github.com/mm318/rs_taskflow/actions/workflows/build.yml/badge.svg)
+
 
 ## Example:
 ```rust
@@ -17,7 +19,7 @@ let flow_arc = Arc::new(flow);
 flow_arc.start().await;
 ```
 
-For a more complete example, see [flow_test.rs](tests/flow_test.rs).
+For a more complete example, see [flow_test.rs](rs_taskflow/tests/flow_test.rs).
 
 
 ## Usage
