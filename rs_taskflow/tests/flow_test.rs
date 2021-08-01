@@ -28,7 +28,9 @@ impl<O1: 'static + Send + Debug, O2: 'static + Send + Debug> ConstTask<O1, O2> {
     }
 }
 
-impl<O1: 'static + Copy + Send + Debug, O2: 'static + Copy + Send + Debug> TaskOutput0<O1> for ConstTask<O1, O2> {
+impl<O1: 'static + Copy + Send + Debug, O2: 'static + Copy + Send + Debug> TaskOutput0<O1>
+    for ConstTask<O1, O2>
+{
     fn get_output_0(task: &dyn ExecutableTask) -> O1 {
         *task
             .as_any()
@@ -217,30 +219,10 @@ async fn main() {
     if cfg!(debug_assertions) {
         println!("Connecting dependent tasks");
     }
-    flow.connect(
-        &input_task_handle,
-        ConstTask::<i32, u8>::get_output_0,
-        &task1_handle,
-        ForwardDataTask::set_input_0,
-    );
-    flow.connect(
-        &input_task_handle,
-        ConstTask::<i32, u8>::get_output_1,
-        &task2_handle,
-        ForwardDataTask::set_input_0,
-    );
-    flow.connect(
-        &task1_handle,
-        ForwardDataTask::get_output_0,
-        &last_task_handle,
-        AdderTask::set_input_0,
-    );
-    flow.connect(
-        &task2_handle,
-        ForwardDataTask::get_output_0,
-        &last_task_handle,
-        AdderTask::set_input_1,
-    );
+    flow.connect_0_0(&input_task_handle, &task1_handle);
+    flow.connect_output1_to_input0(&input_task_handle, &task2_handle);
+    flow.connect_output0_to_input0(&task1_handle, &last_task_handle);
+    flow.connect_output0_to_input1(&task2_handle, &last_task_handle);
 
     //
     // run the system for 3 time steps
