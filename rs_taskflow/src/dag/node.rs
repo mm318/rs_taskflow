@@ -4,9 +4,11 @@ use std::cmp::PartialEq;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 
+pub type NodeId = usize;
+
 #[derive(Eq)]
 pub struct Node<T: Eq + Debug> {
-    id: usize,
+    id: NodeId,
     value: T,
 }
 
@@ -29,12 +31,12 @@ impl<T: Eq + Debug> Hash for Node<T> {
 }
 
 impl<T: Eq + Debug> Node<T> {
-    pub fn new(i: usize, v: T) -> Node<T> {
+    pub fn new(i: NodeId, v: T) -> Node<T> {
         Node { id: i, value: v }
     }
 
-    pub fn get_id(&self) -> &usize {
-        &self.id
+    pub fn get_id(&self) -> NodeId {
+        self.id
     }
 
     pub fn get_value(&self) -> &T {

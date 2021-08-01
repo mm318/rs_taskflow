@@ -8,6 +8,7 @@ use std::task::{Context, Poll};
 use tokio::task;
 use tokio::task::JoinHandle;
 
+use crate::dag::node::NodeId;
 use crate::dag::Dag;
 use crate::task::*;
 
@@ -55,7 +56,7 @@ impl ExecTask {
 
 struct ExecTaskFuture {
     flow: Arc<Flow>,
-    node_id: usize,
+    node_id: NodeId,
     futures: Arc<Vec<ExecTask>>,
 }
 
@@ -63,7 +64,7 @@ impl Future for ExecTaskFuture {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        for from_node_id in self.flow.dag.get_dependencies(&self.node_id) {
+        for from_node_id in self.flow.dag.get_dependencies(self.node_id) {
             if cfg!(debug_assertions) && self.futures[*from_node_id].lock().is_none() {
                 println!("Node {} is missing a future / join handle!", *from_node_id)
             }
@@ -195,7 +196,7 @@ impl Flow {
             self.dag.visited_in_bfs(&mut bfs, node);
 
             let self_copy = self.clone();
-            let node_id = *node.get_id();
+            let node_id = node.get_id();
             let futures_vec_copy = futures_vec_arc.clone();
             self_copy.spawn_exec_task(node_id, futures_vec_copy);
         }

@@ -7,7 +7,7 @@ use std::fmt::Debug;
 use std::marker::Send;
 use std::slice::Iter;
 
-use crate::dag::node::Node;
+use crate::dag::node::{Node, NodeId};
 
 enum CycleCheckStatus {
     Initial,
@@ -16,9 +16,9 @@ enum CycleCheckStatus {
 }
 
 pub struct DagVisitationInfo {
-    dependencies: Vec<HashSet<usize>>,
-    dependants: Vec<HashSet<usize>>,
-    roots: HashSet<usize>,
+    dependencies: Vec<HashSet<NodeId>>,
+    dependants: Vec<HashSet<NodeId>>,
+    roots: HashSet<NodeId>,
 }
 
 impl DagVisitationInfo {
@@ -43,7 +43,7 @@ impl DagVisitationInfo {
         if self
             .get_roots()
             .iter()
-            .all(|root_id| self._check(root_id, &mut HashMap::new()))
+            .all(|root_id| self._check(*root_id, &mut HashMap::new()))
         {
             Ok(self)
         } else {
@@ -51,8 +51,12 @@ impl DagVisitationInfo {
         }
     }
 
-    fn _check(&self, curr_node_id: &usize, visited: &mut HashMap<usize, CycleCheckStatus>) -> bool {
-        visited.insert(*curr_node_id, CycleCheckStatus::Processing);
+    fn _check(
+        &self,
+        curr_node_id: NodeId,
+        visited: &mut HashMap<NodeId, CycleCheckStatus>,
+    ) -> bool {
+        visited.insert(curr_node_id, CycleCheckStatus::Processing);
 
         for dep in self.get_dependants(curr_node_id).iter() {
             let status = match visited.get(dep) {
@@ -62,7 +66,7 @@ impl DagVisitationInfo {
 
             match status {
                 CycleCheckStatus::Initial => {
-                    if !self._check(dep, visited) {
+                    if !self._check(*dep, visited) {
                         return false;
                     }
                 }
@@ -71,35 +75,35 @@ impl DagVisitationInfo {
             }
         }
 
-        visited.insert(*curr_node_id, CycleCheckStatus::Processed);
+        visited.insert(curr_node_id, CycleCheckStatus::Processed);
 
         true
     }
 
     // dependencies are upstream
-    fn add_dependency(&mut self, from_node_id: &usize, to_node_id: &usize) {
-        self.dependencies[*to_node_id].insert(*from_node_id);
+    fn add_dependency(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
+        self.dependencies[to_node_id].insert(from_node_id);
     }
 
     // dependants are downstream
-    fn add_dependant(&mut self, from_node_id: &usize, to_node_id: &usize) {
-        self.dependants[*from_node_id].insert(*to_node_id);
+    fn add_dependant(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
+        self.dependants[from_node_id].insert(to_node_id);
     }
 
-    fn add_relationship(&mut self, from_node_id: &usize, to_node_id: &usize) {
+    fn add_relationship(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
         self.add_dependant(from_node_id, to_node_id);
         self.add_dependency(from_node_id, to_node_id);
     }
 
-    fn add_root_node(&mut self, node_id: &usize) {
-        self.roots.insert(*node_id);
+    fn add_root_node(&mut self, node_id: NodeId) {
+        self.roots.insert(node_id);
     }
 
-    fn remove_root_node(&mut self, node_id: &usize) {
-        self.roots.remove(node_id);
+    fn remove_root_node(&mut self, node_id: NodeId) {
+        self.roots.remove(&node_id);
     }
 
-    fn get_next_root(&self) -> Option<&usize> {
+    fn get_next_root(&self) -> Option<&NodeId> {
         return self.roots.iter().next();
     }
 
@@ -107,16 +111,16 @@ impl DagVisitationInfo {
         &self.roots
     }
 
-    fn get_dependencies(&self, node_id: &usize) -> &HashSet<usize> {
-        &self.dependencies[*node_id]
+    fn get_dependencies(&self, node_id: NodeId) -> &HashSet<usize> {
+        &self.dependencies[node_id]
     }
 
-    // fn remove_dependency(&mut self, from_node_id: &usize, to_node_id: &usize) {
+    // fn remove_dependency(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
     //     self.dependencies[*to_node_id].remove(from_node_id);
     // }
 
-    fn get_dependants(&self, node_id: &usize) -> &HashSet<usize> {
-        &self.dependants[*node_id]
+    fn get_dependants(&self, node_id: NodeId) -> &HashSet<usize> {
+        &self.dependants[node_id]
     }
 }
 
@@ -134,8 +138,8 @@ impl<T: Eq + Debug> Dag<T> {
         }
     }
 
-    pub fn add_node(&mut self, value: T) -> usize {
-        let id = self.nodes.len();
+    pub fn add_node(&mut self, value: T) -> NodeId {
+        let id = self.nodes.len() as NodeId;
         self.nodes.push(Node::new(id, value));
         self.dependencies.push(HashSet::new());
         id
@@ -150,11 +154,11 @@ impl<T: Eq + Debug> Dag<T> {
         self.nodes.len()
     }
 
-    pub fn get_node(&self, node_id: usize) -> &Node<T> {
+    pub fn get_node(&self, node_id: NodeId) -> &Node<T> {
         &self.nodes[node_id]
     }
 
-    pub fn get_mut_node(&mut self, node_id: usize) -> &mut Node<T> {
+    pub fn get_mut_node(&mut self, node_id: NodeId) -> &mut Node<T> {
         &mut self.nodes[node_id]
     }
 
@@ -162,8 +166,8 @@ impl<T: Eq + Debug> Dag<T> {
         self.nodes.iter()
     }
 
-    pub fn get_dependencies(&self, node_id: &usize) -> &HashSet<usize> {
-        &self.dependencies[*node_id]
+    pub fn get_dependencies(&self, node_id: NodeId) -> &HashSet<usize> {
+        &self.dependencies[node_id]
     }
 
     // find roots
@@ -172,7 +176,7 @@ impl<T: Eq + Debug> Dag<T> {
 
         for (to_node_id, deps) in self.dependencies.iter().enumerate() {
             for from_node_id in deps {
-                bfs.add_relationship(from_node_id, &to_node_id);
+                bfs.add_relationship(*from_node_id, to_node_id);
             }
         }
 
@@ -193,13 +197,13 @@ impl<T: Eq + Debug> Dag<T> {
     }
 
     pub fn visited_in_bfs(&self, visitation_info: &mut DagVisitationInfo, node: &Node<T>) {
-        for id in visitation_info.dependants[*node.get_id()].iter() {
-            visitation_info.dependencies[*id].remove(node.get_id());
+        for id in visitation_info.dependants[node.get_id()].iter() {
+            visitation_info.dependencies[*id].remove(&node.get_id());
         }
 
         visitation_info.remove_root_node(node.get_id());
 
-        for id in visitation_info.dependants[*node.get_id()].iter() {
+        for id in visitation_info.dependants[node.get_id()].iter() {
             if visitation_info.dependencies[*id].is_empty() {
                 visitation_info.roots.insert(*id);
             }
@@ -295,14 +299,14 @@ mod tests {
         let mut bfs = dag.build_bfs().unwrap();
 
         assert!(
-            !bfs.get_dependencies(&b).is_empty(),
+            !bfs.get_dependencies(b).is_empty(),
             "Node was not successfully removed"
         );
 
         dag.visited_in_bfs(&mut bfs, dag.get_node(a));
 
         assert!(
-            bfs.get_dependencies(&b).is_empty(),
+            bfs.get_dependencies(b).is_empty(),
             "Node was not successfully removed"
         );
     }

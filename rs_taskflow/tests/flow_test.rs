@@ -33,7 +33,7 @@ async fn main() {
     flow.connect_output0_to_input1(&task2_handle, &last_task_handle);
 
     //
-    // run the system for 3 time steps
+    // starting running the system
     //
     if cfg!(debug_assertions) {
         println!("Executing model");
