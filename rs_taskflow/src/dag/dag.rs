@@ -1,128 +1,13 @@
 // Based on https://github.com/bunker-inspector/rs_taskflow/tree/master/src/flow/dag
 
 use std::cmp::Eq;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::marker::Send;
 use std::slice::Iter;
 
 use crate::dag::node::{Node, NodeId};
-
-enum CycleCheckStatus {
-    Initial,
-    Processing,
-    Processed,
-}
-
-pub struct DagVisitationInfo {
-    dependencies: Vec<HashSet<NodeId>>,
-    dependants: Vec<HashSet<NodeId>>,
-    roots: HashSet<NodeId>,
-}
-
-impl DagVisitationInfo {
-    fn new(len: usize) -> Self {
-        let mut result = DagVisitationInfo {
-            dependencies: Vec::with_capacity(len),
-            dependants: Vec::with_capacity(len),
-            roots: HashSet::new(),
-        };
-
-        result.dependencies.resize(len, HashSet::new());
-        result.dependants.resize(len, HashSet::new());
-
-        result
-    }
-
-    fn check(self) -> Result<Self, &'static str> {
-        if self.get_next_root().is_none() {
-            return Err("No roots found. DAG is invalid!");
-        }
-
-        if self
-            .get_roots()
-            .iter()
-            .all(|root_id| self._check(*root_id, &mut HashMap::new()))
-        {
-            Ok(self)
-        } else {
-            Err("Invalid DAG detected")
-        }
-    }
-
-    fn _check(
-        &self,
-        curr_node_id: NodeId,
-        visited: &mut HashMap<NodeId, CycleCheckStatus>,
-    ) -> bool {
-        visited.insert(curr_node_id, CycleCheckStatus::Processing);
-
-        for dep in self.get_dependants(curr_node_id).iter() {
-            let status = match visited.get(dep) {
-                Some(v) => v,
-                None => &CycleCheckStatus::Initial,
-            };
-
-            match status {
-                CycleCheckStatus::Initial => {
-                    if !self._check(*dep, visited) {
-                        return false;
-                    }
-                }
-                CycleCheckStatus::Processing => return false,
-                CycleCheckStatus::Processed => {}
-            }
-        }
-
-        visited.insert(curr_node_id, CycleCheckStatus::Processed);
-
-        true
-    }
-
-    // dependencies are upstream
-    fn add_dependency(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
-        self.dependencies[to_node_id].insert(from_node_id);
-    }
-
-    // dependants are downstream
-    fn add_dependant(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
-        self.dependants[from_node_id].insert(to_node_id);
-    }
-
-    fn add_relationship(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
-        self.add_dependant(from_node_id, to_node_id);
-        self.add_dependency(from_node_id, to_node_id);
-    }
-
-    fn add_root_node(&mut self, node_id: NodeId) {
-        self.roots.insert(node_id);
-    }
-
-    fn remove_root_node(&mut self, node_id: NodeId) {
-        self.roots.remove(&node_id);
-    }
-
-    fn get_next_root(&self) -> Option<&NodeId> {
-        return self.roots.iter().next();
-    }
-
-    fn get_roots(&self) -> &HashSet<usize> {
-        &self.roots
-    }
-
-    fn get_dependencies(&self, node_id: NodeId) -> &HashSet<usize> {
-        &self.dependencies[node_id]
-    }
-
-    // fn remove_dependency(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
-    //     self.dependencies[*to_node_id].remove(from_node_id);
-    // }
-
-    fn get_dependants(&self, node_id: NodeId) -> &HashSet<usize> {
-        &self.dependants[node_id]
-    }
-}
+use crate::dag::visit::DagVisitationInfo;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct Dag<T: Eq + Debug> {
@@ -171,8 +56,8 @@ impl<T: Eq + Debug> Dag<T> {
     }
 
     // find roots
-    pub fn build_bfs(&self) -> Result<DagVisitationInfo, &str> {
-        let mut bfs = DagVisitationInfo::new(self.get_num_nodes());
+    pub fn build_bfs(&self) -> Result<DagVisitationInfo<T>, &str> {
+        let mut bfs = DagVisitationInfo::new(self);
 
         for (to_node_id, deps) in self.dependencies.iter().enumerate() {
             for from_node_id in deps {
@@ -187,27 +72,6 @@ impl<T: Eq + Debug> Dag<T> {
         }
 
         bfs.check()
-    }
-
-    pub fn next_in_bfs(&self, visitation_info: &DagVisitationInfo) -> Option<&Node<T>> {
-        match visitation_info.get_next_root() {
-            Some(id) => Some(&self.get_node(*id)),
-            None => None,
-        }
-    }
-
-    pub fn visited_in_bfs(&self, visitation_info: &mut DagVisitationInfo, node: &Node<T>) {
-        for id in visitation_info.dependants[node.get_id()].iter() {
-            visitation_info.dependencies[*id].remove(&node.get_id());
-        }
-
-        visitation_info.remove_root_node(node.get_id());
-
-        for id in visitation_info.dependants[node.get_id()].iter() {
-            if visitation_info.dependencies[*id].is_empty() {
-                visitation_info.roots.insert(*id);
-            }
-        }
     }
 }
 
@@ -296,14 +160,14 @@ mod tests {
 
         dag.connect(a, b);
 
-        let mut bfs = dag.build_bfs().unwrap();
+        let bfs = dag.build_bfs().unwrap();
 
         assert!(
             !bfs.get_dependencies(b).is_empty(),
             "Node was not successfully removed"
         );
 
-        dag.visited_in_bfs(&mut bfs, dag.get_node(a));
+        bfs.visited_node(dag.get_node(a));
 
         assert!(
             bfs.get_dependencies(b).is_empty(),
