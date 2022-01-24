@@ -1,7 +1,5 @@
 mod example_tasks;
 
-use std::sync::Arc;
-
 use rs_taskflow::flow::Flow;
 use rs_taskflow::task::TaskOutput0;
 
@@ -46,14 +44,12 @@ async fn main() {
     if cfg!(debug_assertions) {
         println!("Executing model");
     }
-    let flow_arc = Arc::new(flow);
-    let flow_exec = flow_arc.clone().new_execution();
-    flow_exec.start();
+    let flow_exec = flow.execute();
 
     //
     // get the result of the system
     //
-    let read_handle = flow_arc.get_task(&last_task_handle);
+    let read_handle = flow_exec.get_task(&last_task_handle);
     let result = TestAdder::get_output_0(read_handle.borrow());
     println!("result: {}", result);
     assert_eq!(*result, 50);

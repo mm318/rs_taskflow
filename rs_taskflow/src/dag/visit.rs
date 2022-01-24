@@ -12,18 +12,18 @@ enum CycleCheckStatus {
     Processed,
 }
 
-pub struct DagVisitationInfo<'a, T: Eq + Debug> {
+pub struct DagVisitationInfo<'a, T: Eq + Clone + Debug> {
     dag: &'a Dag<T>,
     dependants: Vec<HashSet<NodeId>>,            // downstream nodes
     dependencies: RefCell<Vec<HashSet<NodeId>>>, // upstream nodes
     roots: RefCell<HashSet<NodeId>>,
 }
 
-impl<'a, T: Eq + Debug> DagVisitationInfo<'a, T> {
+impl<'a, T: Eq + Clone + Debug> DagVisitationInfo<'a, T> {
     pub(crate) fn new(dag: &'a Dag<T>) -> Self {
         let len = dag.get_num_nodes();
 
-        let mut result = DagVisitationInfo {
+        let mut result = Self {
             dag: dag,
             dependants: Vec::with_capacity(len),
             dependencies: RefCell::new(Vec::with_capacity(len)),

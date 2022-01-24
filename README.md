@@ -15,8 +15,9 @@ let c = flow.new_task(DefaultTask::new(3));
 flow.connect_output0_to_input0(&a, &b);
 flow.connect_output0_to_input0(&b, &c);
 
-let flow_arc = Arc::new(flow);
-flow_arc.start().await;
+let flow_exec = flow.execute();
+let handle = flow_exec.get_task(&c);
+let result = DefaultTask::get_output_0(handle.borrow());
 ```
 
 For a more complete example, see [flow_test.rs](rs_taskflow/tests/flow_test.rs).

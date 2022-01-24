@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::marker::Send;
+use dyn_clone::DynClone;
 
 use crate::flow::Flow;
 use crate::task::private::AsAny;
@@ -22,7 +23,7 @@ mod private {
     }
 }
 
-pub trait ExecutableTask: AsAny + Sync + Send + Debug {
+pub trait ExecutableTask: AsAny + DynClone + Sync + Send + Debug {
     // type TaskType = Self;
     fn exec(&mut self, flow: &Flow);
 }
@@ -34,6 +35,8 @@ impl PartialEq for dyn ExecutableTask {
 }
 
 impl Eq for dyn ExecutableTask {}
+
+dyn_clone::clone_trait_object!(ExecutableTask);
 
 #[cfg(not(feature = "manual_task_ifaces"))]
 rs_taskflow_derive::generate_task_input_iface_traits!(TaskInput, set_input, 10);
@@ -56,6 +59,7 @@ pub trait TaskOutput1<O0, O1>: TaskOutput0<O0> {
     fn get_output_1(task: &dyn ExecutableTask) -> &O1;
 }
 
+#[derive(Clone)]
 pub struct TaskInputHandle<T> {
     source_task_id: usize,
     value_func: fn(&dyn ExecutableTask) -> &T,
@@ -63,7 +67,7 @@ pub struct TaskInputHandle<T> {
 
 impl<T> TaskInputHandle<T> {
     pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> &T) -> Self {
-        TaskInputHandle {
+        Self {
             source_task_id: id,
             value_func: func,
         }

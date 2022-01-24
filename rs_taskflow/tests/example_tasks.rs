@@ -10,7 +10,7 @@ pub trait TaskParamReqs: 'static + Clone + Send + Sync + Debug {}
 //
 // Task that just simply outputs constant data
 //
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ConstTask<O1, O2> {
     output0: O1,
     output1: O2,
@@ -46,7 +46,7 @@ impl<O1: TaskParamReqs, O2: TaskParamReqs> ExecutableTask for ConstTask<O1, O2> 
 //
 // Task that just simply forwards data
 //
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ForwardDataTask<T> {
     input_handle: Option<TaskInputHandle<T>>,
     output: T,
@@ -94,7 +94,7 @@ impl<T: TaskParamReqs + Clone> ExecutableTask for ForwardDataTask<T> {
 //
 // Task that adds two numbers
 //
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AdderTask<I1, I2, O> {
     input0_handle: Option<TaskInputHandle<I1>>,
     input1_handle: Option<TaskInputHandle<I2>>,

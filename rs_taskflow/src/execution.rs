@@ -7,7 +7,7 @@ use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::dag::node::NodeId;
-use crate::flow::Flow;
+use crate::flow::{Flow, TaskHandle, TaskReadHandle};
 
 struct ExecTaskJoinHandle {
     join_handle: JoinHandle<()>,
@@ -21,7 +21,7 @@ struct ExecTask {
 
 impl ExecTask {
     fn new() -> Self {
-        ExecTask {
+        Self {
             lock: Mutex::new(Option::None),
             condvar: Condvar::new(),
         }
@@ -112,7 +112,7 @@ impl Execution {
         // }
     }
 
-    pub fn start(&self) {
+    pub fn start_and_finish(&self) {
         let len = self.flow.get_num_tasks();
 
         let mut futures_vec = Vec::<ExecTask>::with_capacity(len);
@@ -142,5 +142,9 @@ impl Execution {
                 locked_guard = future_iter.condvar.wait(locked_guard).unwrap();
             }
         }
+    }
+
+    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle {
+        self.flow.get_task(task_handle)
     }
 }

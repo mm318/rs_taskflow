@@ -11,7 +11,7 @@ use rs_taskflow_derive::{
 generate_task_input_iface_traits!(TaskInput, set_input, 4);
 generate_task_output_iface_traits!(TaskOutput, get_output, 4);
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct TestTask {}
 
 impl ExecutableTask for TestTask {

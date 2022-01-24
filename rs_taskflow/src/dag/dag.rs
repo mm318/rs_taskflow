@@ -3,21 +3,20 @@
 use std::cmp::Eq;
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::marker::Send;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::dag::node::{Node, NodeId};
 use crate::dag::visit::DagVisitationInfo;
 
 #[derive(Debug)]
-pub struct Dag<T: Eq + Debug> {
+pub struct Dag<T: Eq + Clone + Debug> {
     nodes: Vec<RwLock<Node<T>>>,
     dependencies: Vec<HashSet<usize>>,
 }
 
-impl<T: Eq + Debug> Dag<T> {
+impl<T: Eq + Clone + Debug> Dag<T> {
     pub fn new() -> Self {
-        Dag {
+        Self {
             nodes: Vec::new(),
             dependencies: Vec::new(),
         }
@@ -74,21 +73,41 @@ impl<T: Eq + Debug> Dag<T> {
 
         bfs.check()
     }
+
+    fn copy_nodes(source: &Self) -> Vec<RwLock<Node<T>>> {
+        let mut vec_copy = Vec::with_capacity(source.nodes.len());
+        for node in &source.nodes {
+            vec_copy.push(RwLock::new(node.read().unwrap().clone()))
+        }
+        vec_copy
+    }
 }
 
-impl<T: Eq + Debug> Default for Dag<T> {
+impl<T: Eq + Clone + Debug> Clone for Dag<T> {
+    fn clone(&self) -> Self {
+        Self {
+            nodes: Dag::copy_nodes(self),
+            dependencies: self.dependencies.clone(),
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.nodes = Dag::copy_nodes(source);
+        self.dependencies = source.dependencies.clone();
+    }
+}
+
+impl<T: Eq + Clone + Debug> Default for Dag<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-unsafe impl<T: Eq + Debug> Send for Dag<T> {}
-
 #[cfg(test)]
 mod tests {
     use crate::dag::Dag;
 
-    #[derive(Hash, Eq, PartialEq, Debug)]
+    #[derive(Hash, Clone, Eq, PartialEq, Debug)]
     struct MockStruct {
         id: char,
     }

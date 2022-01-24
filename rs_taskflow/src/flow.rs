@@ -8,7 +8,6 @@ use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 
 type NodeDataBaseType = Box<dyn ExecutableTask>;
 
-// #[derive(Copy, Clone)]
 pub struct TaskHandle<T> {
     task_id: usize,
     data_type: PhantomData<T>,
@@ -45,13 +44,14 @@ impl<'a, T: 'static> TaskWriteHandle<'a, T> {
     }
 }
 
+#[derive(Clone)]
 pub struct Flow {
     dag: Dag<NodeDataBaseType>,
 }
 
 impl Flow {
     pub fn new() -> Self {
-        Flow { dag: Dag::new() }
+        Self { dag: Dag::new() }
     }
 
     pub fn add_new_task<O, T: TaskOutput0<O>>(&mut self, new_task: T) -> TaskHandle<T> {
@@ -142,8 +142,11 @@ impl Flow {
         &self.dag
     }
 
-    pub fn new_execution(self: Arc<Flow>) -> Execution {
-        Execution::new(self)
+    pub fn execute(&self) -> Execution {
+        let flow_copy = Arc::new(self.clone());
+        let flow_exec = Execution::new(flow_copy);
+        flow_exec.start_and_finish();
+        flow_exec
     }
 }
 
