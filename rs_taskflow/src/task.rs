@@ -35,8 +35,26 @@ impl PartialEq for dyn ExecutableTask {
 
 impl Eq for dyn ExecutableTask {}
 
+#[cfg(not(feature = "manual_task_ifaces"))]
 rs_taskflow_derive::generate_task_input_iface_traits!(TaskInput, set_input, 10);
+#[cfg(not(feature = "manual_task_ifaces"))]
 rs_taskflow_derive::generate_task_output_iface_traits!(TaskOutput, get_output, 10);
+#[cfg(feature = "manual_task_ifaces")]
+pub trait TaskInput0<I0>: ExecutableTask {
+    fn set_input_0(&mut self, task_input: TaskInputHandle<I0>);
+}
+#[cfg(feature = "manual_task_ifaces")]
+pub trait TaskInput1<I0, I1>: TaskInput0<I0> {
+    fn set_input_1(&mut self, task_input: TaskInputHandle<I1>);
+}
+#[cfg(feature = "manual_task_ifaces")]
+pub trait TaskOutput0<O0>: ExecutableTask {
+    fn get_output_0(task: &dyn ExecutableTask) -> O0;
+}
+#[cfg(feature = "manual_task_ifaces")]
+pub trait TaskOutput1<O0, O1>: TaskOutput0<O0> {
+    fn get_output_1(task: &dyn ExecutableTask) -> O1;
+}
 
 pub struct TaskInputHandle<T> {
     source_task_id: usize,

@@ -150,7 +150,40 @@ impl Flow {
         self.dag.connect(task1_handle.id(), task2_handle.id());
     }
 
+    #[cfg(not(feature = "manual_task_ifaces"))]
     rs_taskflow_derive::generate_connect_tasks_funcs!(10);
+    #[cfg(feature = "manual_task_ifaces")]
+    pub fn connect_output0_to_input0<T, A: TaskOutput0<T>, B: TaskInput0<T>>(
+        &mut self,
+        task1_handle: &TaskHandle<A>,
+        task2_handle: &TaskHandle<B>,
+    ) {
+        self.connect(task1_handle, A::get_output_0, task2_handle, B::set_input_0);
+    }
+    #[cfg(feature = "manual_task_ifaces")]
+    pub fn connect_output0_to_input1<I0, T, A: TaskOutput0<T>, B: TaskInput1<I0, T>>(
+        &mut self,
+        task1_handle: &TaskHandle<A>,
+        task2_handle: &TaskHandle<B>,
+    ) {
+        self.connect(task1_handle, A::get_output_0, task2_handle, B::set_input_1);
+    }
+    #[cfg(feature = "manual_task_ifaces")]
+    pub fn connect_output1_to_input0<O0, T, A: TaskOutput1<O0, T>, B: TaskInput0<T>>(
+        &mut self,
+        task1_handle: &TaskHandle<A>,
+        task2_handle: &TaskHandle<B>,
+    ) {
+        self.connect(task1_handle, A::get_output_1, task2_handle, B::set_input_0);
+    }
+    #[cfg(feature = "manual_task_ifaces")]
+    pub fn connect_output1_to_input1<O0, I0, T, A: TaskOutput1<O0, T>, B: TaskInput1<I0, T>>(
+        &mut self,
+        task1_handle: &TaskHandle<A>,
+        task2_handle: &TaskHandle<B>,
+    ) {
+        self.connect(task1_handle, A::get_output_1, task2_handle, B::set_input_1);
+    }
 
     fn spawn_exec_task(self: Arc<Flow>, node_id: usize, futures: Arc<Vec<ExecTask>>) {
         // if cfg!(debug_assertions) {

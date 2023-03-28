@@ -10,15 +10,19 @@ use crate::example_tasks::{AdderTask, ConstTask, ForwardDataTask};
 // #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn main() {
+    type TestAdder = AdderTask<i32, u8, i64>;
+
+    //
+    // declare system
+    //
     let mut flow = Flow::new();
 
     //
     // create system components
     //
-    type TestAdder = AdderTask<i32, u8, i64>;
+    let input_task_handle = flow.new_task(ConstTask::new(42 as i32, 8 as u8));
     let task1_handle = flow.new_task(ForwardDataTask::new(1 as i32));
     let task2_handle = flow.new_task(ForwardDataTask::new(2 as u8));
-    let input_task_handle = flow.new_task(ConstTask::new(42 as i32, 8 as u8));
     let last_task_handle = flow.new_task(TestAdder::new(0));
 
     //

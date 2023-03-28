@@ -81,7 +81,7 @@ impl FakeFlow {
         unimplemented!()
     }
 
-    rs_taskflow_derive::generate_connect_tasks_funcs!(4);
+    generate_connect_tasks_funcs!(4);
 }
 
 #[test]
