@@ -20,10 +20,10 @@ async fn main() {
     //
     // create system components
     //
-    let input_task_handle = flow.new_task(ConstTask::new(42 as i32, 8 as u8));
-    let task1_handle = flow.new_task(ForwardDataTask::new(1 as i32));
-    let task2_handle = flow.new_task(ForwardDataTask::new(2 as u8));
-    let last_task_handle = flow.new_task(TestAdder::new(0));
+    let input_task_handle = flow.add_new_task(ConstTask::new(42 as i32, 8 as u8));
+    let task1_handle = flow.add_new_task(ForwardDataTask::new(1 as i32));
+    let task2_handle = flow.add_new_task(ForwardDataTask::new(2 as u8));
+    let last_task_handle = flow.add_new_task(TestAdder::new(0));
 
     //
     // hook up system components
@@ -37,13 +37,14 @@ async fn main() {
     flow.connect_output0_to_input1(&task2_handle, &last_task_handle);
 
     //
-    // run the system for 3 time steps
+    // starting running the system
     //
     if cfg!(debug_assertions) {
         println!("Executing model");
     }
     let flow_arc = Arc::new(flow);
-    flow_arc.clone().start();
+    let flow_exec = flow_arc.clone().new_execution();
+    flow_exec.start();
 
     //
     // get the result of the system

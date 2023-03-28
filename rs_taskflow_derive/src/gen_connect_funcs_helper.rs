@@ -55,7 +55,7 @@ pub(super) fn generate_connect_tasks_func(
         pub fn #func_name<
                 #output_trait_params
                 #input_trait_params
-                T,
+                T: 'static,
                 A: #output_trait_name<#output_trait_params T>,
                 B: #input_trait_name<#input_trait_params T>,
         >(
