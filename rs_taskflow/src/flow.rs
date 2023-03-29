@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use crate::dag::Dag;
 use crate::execution::Execution;
 use crate::task::*;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock, Weak};
 
 // #[derive(Copy, Clone)]
 pub struct TaskHandle<T> {
@@ -68,7 +68,7 @@ impl Flow {
     fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T: 'static>(
         &mut self,
         task1_handle: &TaskHandle<A>,
-        task1_output: fn(&dyn ExecutableTask) -> T,
+        task1_output: fn(&dyn ExecutableTask) -> Weak<RwLock<T>>,
         task2_handle: &TaskHandle<B>,
         task2_input: fn(&mut B, TaskInputHandle<T>),
     ) {

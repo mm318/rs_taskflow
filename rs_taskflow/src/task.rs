@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::marker::Send;
+use std::sync::{RwLock, Weak};
 
 use crate::flow::Flow;
 use crate::task::private::AsAny;
@@ -22,7 +23,7 @@ mod private {
     }
 }
 
-pub trait ExecutableTask: AsAny + Sync + Send + Debug {
+pub trait ExecutableTask: AsAny + Send + Sync + Debug {
     // type TaskType = Self;
     fn exec(&self, flow: &Flow);
 }
@@ -49,32 +50,32 @@ pub trait TaskInput1<I0, I1>: TaskInput0<I0> {
 }
 #[cfg(feature = "manual_task_ifaces")]
 pub trait TaskOutput0<O0>: ExecutableTask {
-    fn get_output_0(task: &dyn ExecutableTask) -> O0;
+    fn get_output_0(task: &dyn ExecutableTask) -> Weak<RwLock<O0>>;
 }
 #[cfg(feature = "manual_task_ifaces")]
 pub trait TaskOutput1<O0, O1>: TaskOutput0<O0> {
-    fn get_output_1(task: &dyn ExecutableTask) -> O1;
+    fn get_output_1(task: &dyn ExecutableTask) -> Weak<RwLock<O1>>;
 }
 
 pub struct TaskInputHandle<T> {
     source_task_id: usize,
-    value_func: fn(&dyn ExecutableTask) -> T,
+    value_func: fn(&dyn ExecutableTask) -> Weak<RwLock<T>>,
 }
 
 impl<T> TaskInputHandle<T> {
-    pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> T) -> Self {
+    pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> Weak<RwLock<T>>) -> Self {
         TaskInputHandle {
             source_task_id: id,
             value_func: func,
         }
     }
 
-    pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> T) {
+    pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> Weak<RwLock<T>>) {
         self.source_task_id = id;
         self.value_func = func;
     }
 
-    pub fn get_value(&self, flow: &Flow) -> T {
+    pub fn get_value(&self, flow: &Flow) -> Weak<RwLock<T>> {
         return (self.value_func)(flow.get_task_by_id(self.source_task_id));
     }
 }

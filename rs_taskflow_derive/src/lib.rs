@@ -5,7 +5,6 @@ use quote::quote;
 
 #[proc_macro]
 pub fn generate_task_input_iface_traits(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    // println!("{:?}", input);
     let options = syn::parse_macro_input!(input as gen_task_traits_helper::TaskInterfaceOptions);
 
     let mut result = quote! {};
@@ -35,7 +34,7 @@ pub fn generate_task_output_iface_traits(
             gen_task_traits_helper::generate_iface_trait_components(&options, i);
         result.extend(quote! {
             pub trait #new_trait: #base_trait {
-                fn #function_ident(task: &dyn ExecutableTask) -> #new_trait_param;
+                fn #function_ident(task: &dyn ExecutableTask) -> Weak<RwLock<#new_trait_param>>;
             }
         });
     }

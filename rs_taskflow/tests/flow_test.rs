@@ -5,7 +5,11 @@ use std::sync::Arc;
 use rs_taskflow::flow::Flow;
 use rs_taskflow::task::TaskOutput0;
 
-use crate::example_tasks::{AdderTask, ConstTask, ForwardDataTask};
+use crate::example_tasks::{AdderTask, ConstTask, ForwardDataTask, TaskParamReqs};
+
+impl TaskParamReqs for u8 {}
+impl TaskParamReqs for i32 {}
+impl TaskParamReqs for i64 {}
 
 // #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
@@ -50,6 +54,8 @@ async fn main() {
     // get the result of the system
     //
     let result = TestAdder::get_output_0(flow_arc.get_task(&last_task_handle));
-    println!("result: {}", result);
-    assert_eq!(result, 50);
+    let result_binding = result.upgrade().unwrap();
+    let result_ref = result_binding.read().unwrap();
+    println!("result: {}", *result_ref);
+    assert_eq!(*result_ref, 50);
 }

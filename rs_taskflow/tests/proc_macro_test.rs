@@ -1,6 +1,8 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
+use std::sync::{RwLock, Weak};
+
 use rs_taskflow::flow::{Flow, TaskHandle};
 use rs_taskflow::task::{ExecutableTask, TaskInputHandle};
 use rs_taskflow_derive::{
@@ -45,25 +47,25 @@ impl TaskInput3<i32, u32, String, Option<bool>> for TestTask {
 }
 
 impl TaskOutput0<i32> for TestTask {
-    fn get_output_0(_task: &dyn ExecutableTask) -> i32 {
+    fn get_output_0(_task: &dyn ExecutableTask) -> Weak<RwLock<i32>> {
         unimplemented!();
     }
 }
 
 impl TaskOutput1<i32, u32> for TestTask {
-    fn get_output_1(_task: &dyn ExecutableTask) -> u32 {
+    fn get_output_1(_task: &dyn ExecutableTask) -> Weak<RwLock<u32>> {
         unimplemented!();
     }
 }
 
 impl TaskOutput2<i32, u32, String> for TestTask {
-    fn get_output_2(_task: &dyn ExecutableTask) -> String {
+    fn get_output_2(_task: &dyn ExecutableTask) -> Weak<RwLock<String>> {
         unimplemented!();
     }
 }
 
 impl TaskOutput3<i32, u32, String, Option<bool>> for TestTask {
-    fn get_output_3(_task: &dyn ExecutableTask) -> Option<bool> {
+    fn get_output_3(_task: &dyn ExecutableTask) -> Weak<RwLock<Option<bool>>> {
         unimplemented!();
     }
 }
@@ -74,7 +76,7 @@ impl FakeFlow {
     fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T>(
         &mut self,
         _task1_handle: &TaskHandle<A>,
-        _task1_output: fn(&dyn ExecutableTask) -> T,
+        _task1_output: fn(&dyn ExecutableTask) -> Weak<RwLock<T>>,
         _task2_handle: &TaskHandle<B>,
         _task2_input: fn(&mut B, TaskInputHandle<T>),
     ) {
