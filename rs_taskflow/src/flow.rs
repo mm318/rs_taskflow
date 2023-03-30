@@ -143,7 +143,7 @@ impl Flow {
         &self.dag
     }
 
-    pub fn execute(&self) -> impl Future<Output=Execution> {
+    pub fn execute(&self) -> impl Future<Output = Execution> {
         let flow_copy = Arc::new(self.clone());
         let flow_exec = Execution::new(flow_copy);
         flow_exec.start_and_finish()

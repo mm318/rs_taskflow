@@ -1,6 +1,6 @@
+use dyn_clone::DynClone;
 use std::fmt::Debug;
 use std::marker::Send;
-use dyn_clone::DynClone;
 
 use crate::flow::Flow;
 use crate::task::private::AsAny;

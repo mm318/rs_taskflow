@@ -3,7 +3,7 @@ mod example_tasks;
 use rs_taskflow::flow::Flow;
 use rs_taskflow::task::TaskOutput0;
 
-use crate::example_tasks::{AddValuesTask, SettableOutputTask, ForwardDataTask, TaskParamReqs};
+use crate::example_tasks::{AddValuesTask, ForwardDataTask, SettableOutputTask, TaskParamReqs};
 
 impl TaskParamReqs for u8 {}
 impl TaskParamReqs for i32 {}

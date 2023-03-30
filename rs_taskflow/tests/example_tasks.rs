@@ -109,7 +109,9 @@ pub struct AddValuesTask<I1, I2, O> {
     output: O,
 }
 
-impl<I1: Clone + NumCast, I2: Clone + NumCast, O: NumCast + Add<Output = O>> AddValuesTask<I1, I2, O> {
+impl<I1: Clone + NumCast, I2: Clone + NumCast, O: NumCast + Add<Output = O>>
+    AddValuesTask<I1, I2, O>
+{
     pub fn new(initial_value: O) -> Self {
         Self {
             input0_handle: None,
