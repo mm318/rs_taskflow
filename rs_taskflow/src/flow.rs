@@ -1,3 +1,4 @@
+use std::future::Future;
 use std::marker::PhantomData;
 
 use crate::dag::node::Node;
@@ -29,13 +30,13 @@ impl<'a> TaskReadHandle<'a> {
     }
 }
 
-pub(crate) struct TaskWriteHandle<'a, T> {
+pub struct TaskWriteHandle<'a, T> {
     guard: RwLockWriteGuard<'a, Node<NodeDataBaseType>>,
     data_type: PhantomData<T>,
 }
 
 impl<'a, T: 'static> TaskWriteHandle<'a, T> {
-    pub(crate) fn borrow_concrete(&mut self) -> &mut T {
+    pub fn borrow_concrete(&mut self) -> &mut T {
         (*self.guard)
             .get_mut_value()
             .as_mut_any()
@@ -72,7 +73,7 @@ impl Flow {
         self.get_task_by_id(task_handle.id())
     }
 
-    fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
+    pub fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
         TaskWriteHandle {
             guard: self.dag.get_mut_node(task_handle.id()),
             data_type: PhantomData,
@@ -142,11 +143,10 @@ impl Flow {
         &self.dag
     }
 
-    pub fn execute(&self) -> Execution {
+    pub fn execute(&self) -> impl Future<Output=Execution> {
         let flow_copy = Arc::new(self.clone());
         let flow_exec = Execution::new(flow_copy);
-        flow_exec.start_and_finish();
-        flow_exec
+        flow_exec.start_and_finish()
     }
 }
 

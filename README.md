@@ -15,7 +15,7 @@ let c = flow.new_task(DefaultTask::new(3));
 flow.connect_output0_to_input0(&a, &b);
 flow.connect_output0_to_input0(&b, &c);
 
-let flow_exec = flow.execute();
+let flow_exec = flow.execute().await;
 let handle = flow_exec.get_task(&c);
 let result = DefaultTask::get_output_0(handle.borrow());
 ```

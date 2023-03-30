@@ -112,7 +112,7 @@ impl Execution {
         // }
     }
 
-    pub fn start_and_finish(&self) {
+    pub async fn start_and_finish(self) -> Self {
         let len = self.flow.get_num_tasks();
 
         let mut futures_vec = Vec::<ExecTask>::with_capacity(len);
@@ -142,6 +142,8 @@ impl Execution {
                 locked_guard = future_iter.condvar.wait(locked_guard).unwrap();
             }
         }
+
+        self
     }
 
     pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle {
