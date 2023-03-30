@@ -27,21 +27,13 @@ impl<O1, O2> ConstTask<O1, O2> {
 
 impl<O1: TaskParamReqs, O2: TaskParamReqs> TaskOutput0<O1> for ConstTask<O1, O2> {
     fn get_output_0(task: &dyn ExecutableTask) -> &O1 {
-        &task
-            .as_any()
-            .downcast_ref::<Self>()
-            .unwrap()
-            .output0
+        &task.as_any().downcast_ref::<Self>().unwrap().output0
     }
 }
 
 impl<O1: TaskParamReqs, O2: TaskParamReqs> TaskOutput1<O1, O2> for ConstTask<O1, O2> {
     fn get_output_1(task: &dyn ExecutableTask) -> &O2 {
-        &task
-            .as_any()
-            .downcast_ref::<Self>()
-            .unwrap()
-            .output1
+        &task.as_any().downcast_ref::<Self>().unwrap().output1
     }
 }
 
@@ -81,11 +73,7 @@ impl<T: TaskParamReqs + Clone> TaskInput0<T> for ForwardDataTask<T> {
 
 impl<T: TaskParamReqs + Clone> TaskOutput0<T> for ForwardDataTask<T> {
     fn get_output_0(task: &dyn ExecutableTask) -> &T {
-        &task
-            .as_any()
-            .downcast_ref::<Self>()
-            .unwrap()
-            .output
+        &task.as_any().downcast_ref::<Self>().unwrap().output
     }
 }
 
@@ -123,7 +111,8 @@ impl<I1: Clone + NumCast, I2: Clone + NumCast, O: NumCast + Add<Output = O>> Add
     }
 
     fn perform_task(&mut self, input0: &I1, input1: &I2) {
-        self.output = cast::<I1, O>(input0.clone()).unwrap() + cast::<I2, O>(input1.clone()).unwrap();
+        self.output =
+            cast::<I1, O>(input0.clone()).unwrap() + cast::<I2, O>(input1.clone()).unwrap();
     }
 }
 
@@ -156,11 +145,7 @@ impl<
     > TaskOutput0<O> for AdderTask<I1, I2, O>
 {
     fn get_output_0(task: &dyn ExecutableTask) -> &O {
-        &task
-            .as_any()
-            .downcast_ref::<Self>()
-            .unwrap()
-            .output
+        &task.as_any().downcast_ref::<Self>().unwrap().output
     }
 }
 

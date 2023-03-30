@@ -78,9 +78,7 @@ impl<T> TaskInputHandle<T> {
         let task_handle = flow.get_task_by_id(self.source_task_id);
         let val_ref = (self.value_func)(task_handle.borrow());
         let val_ptr: *const T = val_ref;
-        unsafe {
-            &*val_ptr
-        }
+        unsafe { &*val_ptr }
     }
 }
 

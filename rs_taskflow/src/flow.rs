@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
+use crate::dag::node::Node;
 use crate::dag::Dag;
 use crate::execution::Execution;
 use crate::task::*;
 use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
-use crate::dag::node::Node;
 
 type NodeDataBaseType = Box<dyn ExecutableTask>;
 
@@ -21,7 +21,7 @@ impl<T> TaskHandle<T> {
 }
 
 pub struct TaskReadHandle<'a> {
-    guard: RwLockReadGuard<'a, Node<NodeDataBaseType>>
+    guard: RwLockReadGuard<'a, Node<NodeDataBaseType>>,
 }
 
 impl<'a> TaskReadHandle<'a> {
@@ -37,7 +37,11 @@ pub(crate) struct TaskWriteHandle<'a, T> {
 
 impl<'a, T: 'static> TaskWriteHandle<'a, T> {
     pub(crate) fn borrow_concrete(&mut self) -> &mut T {
-        (*self.guard).get_mut_value().as_mut_any().downcast_mut::<T>().unwrap()
+        (*self.guard)
+            .get_mut_value()
+            .as_mut_any()
+            .downcast_mut::<T>()
+            .unwrap()
     }
 }
 
@@ -47,9 +51,7 @@ pub struct Flow {
 
 impl Flow {
     pub fn new() -> Self {
-        Flow {
-            dag: Dag::new(),
-        }
+        Flow { dag: Dag::new() }
     }
 
     pub fn add_new_task<O, T: TaskOutput0<O>>(&mut self, new_task: T) -> TaskHandle<T> {
@@ -61,7 +63,9 @@ impl Flow {
     }
 
     pub(crate) fn get_task_by_id(&self, task_id: usize) -> TaskReadHandle {
-        TaskReadHandle { guard: self.dag.get_node(task_id) }
+        TaskReadHandle {
+            guard: self.dag.get_node(task_id),
+        }
     }
 
     pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle {
@@ -71,7 +75,7 @@ impl Flow {
     fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
         TaskWriteHandle {
             guard: self.dag.get_mut_node(task_handle.id()),
-            data_type: PhantomData
+            data_type: PhantomData,
         }
     }
 
