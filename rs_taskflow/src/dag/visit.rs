@@ -4,6 +4,7 @@ use std::fmt::Debug;
 use crate::dag::dag::Dag;
 use crate::dag::node::{Node, NodeId};
 use std::cell::{Ref, RefCell};
+use std::sync::RwLockReadGuard;
 
 enum CycleCheckStatus {
     Initial,
@@ -140,9 +141,9 @@ impl<'a, T: Eq + Debug> DagVisitationInfo<'a, T> {
         }
     }
 
-    pub fn next(&self) -> Option<&Node<T>> {
+    pub fn next(&self) -> Option<RwLockReadGuard<Node<T>>> {
         match self.get_next_root() {
-            Some(id) => Some(&self.dag.get_node(id)),
+            Some(id) => Some(self.dag.get_node(id)),
             None => None,
         }
     }

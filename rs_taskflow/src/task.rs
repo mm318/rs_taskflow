@@ -24,7 +24,7 @@ mod private {
 
 pub trait ExecutableTask: AsAny + Sync + Send + Debug {
     // type TaskType = Self;
-    fn exec(&self, flow: &Flow);
+    fn exec(&mut self, flow: &Flow);
 }
 
 impl PartialEq for dyn ExecutableTask {
@@ -75,7 +75,7 @@ impl<T> TaskInputHandle<T> {
     }
 
     pub fn get_value(&self, flow: &Flow) -> T {
-        return (self.value_func)(flow.get_task_by_id(self.source_task_id));
+        (self.value_func)(flow.get_task_by_id(self.source_task_id).borrow())
     }
 }
 

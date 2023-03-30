@@ -1,10 +1,12 @@
-use std::any::Any;
 use std::marker::PhantomData;
 
 use crate::dag::Dag;
 use crate::execution::Execution;
 use crate::task::*;
-use std::sync::Arc;
+use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
+use crate::dag::node::Node;
+
+type NodeDataBaseType = Box<dyn ExecutableTask>;
 
 // #[derive(Copy, Clone)]
 pub struct TaskHandle<T> {
@@ -18,16 +20,35 @@ impl<T> TaskHandle<T> {
     }
 }
 
+pub(crate) struct TaskReadHandle<'a> {
+    guard: RwLockReadGuard<'a, Node<NodeDataBaseType>>
+}
+
+impl<'a> TaskReadHandle<'a> {
+    pub(crate) fn borrow(&self) -> &dyn ExecutableTask {
+        self.guard.get_value().as_ref()
+    }
+}
+
+pub(crate) struct TaskWriteHandle<'a, T> {
+    guard: RwLockWriteGuard<'a, Node<NodeDataBaseType>>,
+    data_type: PhantomData<T>,
+}
+
+impl<'a, T: 'static> TaskWriteHandle<'a, T> {
+    pub(crate) fn borrow_concrete(&mut self) -> &mut T {
+        (*self.guard).get_mut_value().as_mut_any().downcast_mut::<T>().unwrap()
+    }
+}
+
 pub struct Flow {
-    dag: Dag<Box<dyn ExecutableTask>>,
-    // connections_setup: Vec<Box<dyn Fn(&mut Flow)>>
+    dag: Dag<NodeDataBaseType>,
 }
 
 impl Flow {
     pub fn new() -> Self {
         Flow {
             dag: Dag::new(),
-            // connections_setup: Vec::new(),
         }
     }
 
@@ -39,30 +60,19 @@ impl Flow {
         }
     }
 
-    pub fn get_task_by_id(&self, task_id: usize) -> &dyn ExecutableTask {
-        return &**self.dag.get_node(task_id).get_value();
+    pub(crate) fn get_task_by_id(&self, task_id: usize) -> TaskReadHandle {
+        TaskReadHandle { guard: self.dag.get_node(task_id) }
     }
 
-    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> &dyn ExecutableTask {
-        self.get_task_by_id(task_handle.id())
-    }
-
-    // fn get_concrete_task<B: Any>(&self, task_handle: &TaskHandle<B>) -> &B {
-    //     return self
-    //         .get_task(task_handle)
-    //         .as_any()
-    //         .downcast_ref::<B>()
-    //         .unwrap();
+    // pub(crate) fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle {
+    //     self.get_task_by_id(task_handle.id())
     // }
 
-    fn get_mut_concrete_task<T: Any>(&mut self, task_handle: &TaskHandle<T>) -> &mut T {
-        return self
-            .dag
-            .get_mut_node(task_handle.id())
-            .get_mut_value()
-            .as_mut_any()
-            .downcast_mut::<T>()
-            .unwrap();
+    fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
+        TaskWriteHandle {
+            guard: self.dag.get_mut_node(task_handle.id()),
+            data_type: PhantomData
+        }
     }
 
     fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T: 'static>(
@@ -73,18 +83,10 @@ impl Flow {
         task2_input: fn(&mut B, TaskInputHandle<T>),
     ) {
         (task2_input)(
-            self.get_mut_concrete_task(task2_handle),
+            self.get_mut_task(task2_handle).borrow_concrete(),
             TaskInputHandle::new(task1_handle.id(), task1_output),
         );
         self.dag.connect(task1_handle.id(), task2_handle.id());
-
-        // let task1_handle_copy = *task1_handle;
-        // let task2_handle_copy = *task2_handle;
-        // let connection_setup = move |flow: &mut Flow| (task2_input)(
-        //     flow.get_mut_concrete_task(&task2_handle_copy),
-        //     TaskInputHandle::new(task1_handle_copy.id(), task1_output),
-        // );
-        // self.connections_setup.push(Box::new(connection_setup));
     }
 
     #[cfg(not(feature = "manual_task_ifaces"))]
@@ -132,7 +134,7 @@ impl Flow {
         self.dag.get_num_nodes()
     }
 
-    pub(crate) fn get_flow_graph(&self) -> &Dag<Box<dyn ExecutableTask>> {
+    pub(crate) fn get_flow_graph(&self) -> &Dag<NodeDataBaseType> {
         &self.dag
     }
 
