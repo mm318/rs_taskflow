@@ -32,10 +32,11 @@ git clone https://github.com/mm318/rs_taskflow.git
 
 ### Build and Test
 ```bash
-cargo test --all-features -- --nocapture
+cargo test --release -- --nocapture
 ```
 
 
 ## Requirements
 
-Tested using Rust 1.53.
+Developed using Ubuntu 20.04 and Rust 1.64.  
+Tested nightly using `ubuntu-latest` and latest stable Rust (as fetched by `actions-rs/toolchain@v1`). 
