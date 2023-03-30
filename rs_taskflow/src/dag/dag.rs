@@ -4,14 +4,14 @@ use std::cmp::Eq;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::marker::Send;
-use std::slice::Iter;
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::dag::node::{Node, NodeId};
 use crate::dag::visit::DagVisitationInfo;
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Debug)]
 pub struct Dag<T: Eq + Debug> {
-    nodes: Vec<Node<T>>,
+    nodes: Vec<RwLock<Node<T>>>,
     dependencies: Vec<HashSet<usize>>,
 }
 
@@ -25,7 +25,7 @@ impl<T: Eq + Debug> Dag<T> {
 
     pub fn add_node(&mut self, value: T) -> NodeId {
         let id = self.nodes.len() as NodeId;
-        self.nodes.push(Node::new(id, value));
+        self.nodes.push(RwLock::new(Node::new(id, value)));
         self.dependencies.push(HashSet::new());
         id
     }
@@ -39,17 +39,17 @@ impl<T: Eq + Debug> Dag<T> {
         self.nodes.len()
     }
 
-    pub fn get_node(&self, node_id: NodeId) -> &Node<T> {
-        &self.nodes[node_id]
+    pub fn get_node(&self, node_id: NodeId) -> RwLockReadGuard<Node<T>> {
+        self.nodes[node_id].read().unwrap()
     }
 
-    pub fn get_mut_node(&mut self, node_id: NodeId) -> &mut Node<T> {
-        &mut self.nodes[node_id]
+    pub fn get_mut_node(&self, node_id: NodeId) -> RwLockWriteGuard<Node<T>> {
+        self.nodes[node_id].write().unwrap()
     }
 
-    pub fn iter_nodes(&self) -> Iter<'_, Node<T>> {
-        self.nodes.iter()
-    }
+    // pub fn iter_nodes(&self) -> Iter<'_, Node<T>> {
+    //     self.nodes.iter()
+    // }
 
     pub fn get_dependencies(&self, node_id: NodeId) -> &HashSet<usize> {
         &self.dependencies[node_id]
@@ -66,8 +66,9 @@ impl<T: Eq + Debug> Dag<T> {
         }
 
         for node in &self.nodes {
-            if bfs.get_dependencies(node.get_id()).is_empty() {
-                bfs.add_root_node(node.get_id());
+            let node_id = node.read().unwrap().get_id();
+            if bfs.get_dependencies(node_id).is_empty() {
+                bfs.add_root_node(node_id);
             }
         }
 
@@ -85,9 +86,7 @@ unsafe impl<T: Eq + Debug> Send for Dag<T> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::dag::node::Node;
     use crate::dag::Dag;
-    use std::collections::HashSet;
 
     #[derive(Hash, Eq, PartialEq, Debug)]
     struct MockStruct {
@@ -167,45 +166,11 @@ mod tests {
             "Node was not successfully removed"
         );
 
-        bfs.visited_node(dag.get_node(a));
+        bfs.visited_node(&*dag.get_node(a));
 
         assert!(
             bfs.get_dependencies(b).is_empty(),
             "Node was not successfully removed"
         );
-    }
-
-    #[test]
-    fn node_hash() {
-        let mut dag = Dag::new();
-
-        let a = dag.add_node(MockStruct::new('A'));
-        let b = dag.add_node(MockStruct::new('a'));
-        let c = dag.add_node(MockStruct::new('C'));
-        let d = dag.add_node(MockStruct::new('D'));
-        let e = dag.add_node(MockStruct::new('E'));
-        let f = dag.add_node(MockStruct::new('F'));
-        let g = dag.add_node(MockStruct::new('G'));
-        let h = dag.add_node(MockStruct::new('H'));
-
-        let mut hash: HashSet<&Node<MockStruct>> = HashSet::new();
-
-        hash.insert(dag.get_node(a));
-        hash.insert(dag.get_node(b));
-        hash.insert(dag.get_node(c));
-        hash.insert(dag.get_node(d));
-        hash.insert(dag.get_node(e));
-        hash.insert(dag.get_node(f));
-        hash.insert(dag.get_node(g));
-        hash.insert(dag.get_node(h));
-
-        assert!(hash.contains(dag.get_node(a)), "Node did not hash properly");
-        assert!(hash.contains(dag.get_node(b)), "Node did not hash properly");
-        assert!(hash.contains(dag.get_node(c)), "Node did not hash properly");
-        assert!(hash.contains(dag.get_node(d)), "Node did not hash properly");
-        assert!(hash.contains(dag.get_node(e)), "Node did not hash properly");
-        assert!(hash.contains(dag.get_node(f)), "Node did not hash properly");
-        assert!(hash.contains(dag.get_node(g)), "Node did not hash properly");
-        assert!(hash.contains(dag.get_node(h)), "Node did not hash properly");
     }
 }

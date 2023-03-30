@@ -24,7 +24,7 @@ mod private {
 
 pub trait ExecutableTask: AsAny + Sync + Send + Debug {
     // type TaskType = Self;
-    fn exec(&self, flow: &Flow);
+    fn exec(&mut self, flow: &Flow);
 }
 
 impl PartialEq for dyn ExecutableTask {
@@ -49,33 +49,36 @@ pub trait TaskInput1<I0, I1>: TaskInput0<I0> {
 }
 #[cfg(feature = "manual_task_ifaces")]
 pub trait TaskOutput0<O0>: ExecutableTask {
-    fn get_output_0(task: &dyn ExecutableTask) -> O0;
+    fn get_output_0(task: &dyn ExecutableTask) -> &O0;
 }
 #[cfg(feature = "manual_task_ifaces")]
 pub trait TaskOutput1<O0, O1>: TaskOutput0<O0> {
-    fn get_output_1(task: &dyn ExecutableTask) -> O1;
+    fn get_output_1(task: &dyn ExecutableTask) -> &O1;
 }
 
 pub struct TaskInputHandle<T> {
     source_task_id: usize,
-    value_func: fn(&dyn ExecutableTask) -> T,
+    value_func: fn(&dyn ExecutableTask) -> &T,
 }
 
 impl<T> TaskInputHandle<T> {
-    pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> T) -> Self {
+    pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> &T) -> Self {
         TaskInputHandle {
             source_task_id: id,
             value_func: func,
         }
     }
 
-    pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> T) {
+    pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> &T) {
         self.source_task_id = id;
         self.value_func = func;
     }
 
-    pub fn get_value(&self, flow: &Flow) -> T {
-        return (self.value_func)(flow.get_task_by_id(self.source_task_id));
+    pub fn get_value<'a, 'b>(&'a self, flow: &'b Flow) -> &'b T {
+        let task_handle = flow.get_task_by_id(self.source_task_id);
+        let val_ref = (self.value_func)(task_handle.borrow());
+        let val_ptr: *const T = val_ref;
+        unsafe { &*val_ptr }
     }
 }
 

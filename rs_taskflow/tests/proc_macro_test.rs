@@ -15,7 +15,7 @@ generate_task_output_iface_traits!(TaskOutput, get_output, 4);
 struct TestTask {}
 
 impl ExecutableTask for TestTask {
-    fn exec(&self, _flow: &Flow) {
+    fn exec(&mut self, _flow: &Flow) {
         unimplemented!();
     }
 }
@@ -45,25 +45,25 @@ impl TaskInput3<i32, u32, String, Option<bool>> for TestTask {
 }
 
 impl TaskOutput0<i32> for TestTask {
-    fn get_output_0(_task: &dyn ExecutableTask) -> i32 {
+    fn get_output_0(_task: &dyn ExecutableTask) -> &i32 {
         unimplemented!();
     }
 }
 
 impl TaskOutput1<i32, u32> for TestTask {
-    fn get_output_1(_task: &dyn ExecutableTask) -> u32 {
+    fn get_output_1(_task: &dyn ExecutableTask) -> &u32 {
         unimplemented!();
     }
 }
 
 impl TaskOutput2<i32, u32, String> for TestTask {
-    fn get_output_2(_task: &dyn ExecutableTask) -> String {
+    fn get_output_2(_task: &dyn ExecutableTask) -> &String {
         unimplemented!();
     }
 }
 
 impl TaskOutput3<i32, u32, String, Option<bool>> for TestTask {
-    fn get_output_3(_task: &dyn ExecutableTask) -> Option<bool> {
+    fn get_output_3(_task: &dyn ExecutableTask) -> &Option<bool> {
         unimplemented!();
     }
 }
@@ -74,7 +74,7 @@ impl FakeFlow {
     fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T>(
         &mut self,
         _task1_handle: &TaskHandle<A>,
-        _task1_output: fn(&dyn ExecutableTask) -> T,
+        _task1_output: fn(&dyn ExecutableTask) -> &T,
         _task2_handle: &TaskHandle<B>,
         _task2_input: fn(&mut B, TaskInputHandle<T>),
     ) {

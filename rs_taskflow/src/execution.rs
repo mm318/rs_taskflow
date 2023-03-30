@@ -65,8 +65,8 @@ impl Future for ExecTaskFuture {
 
         self.flow
             .get_flow_graph()
-            .get_node(self.node_id)
-            .get_value()
+            .get_mut_node(self.node_id)
+            .get_mut_value()
             .exec(self.flow.as_ref());
 
         self.futures[self.node_id]
@@ -124,12 +124,12 @@ impl Execution {
         let futures_vec_arc = Arc::new(futures_vec);
 
         let bfs = self.flow.get_flow_graph().build_bfs().unwrap();
-        while let Some(ref node) = bfs.next() {
+        while let Some(node) = bfs.next() {
             if cfg!(debug_assertions) {
-                println!("  Visiting {:?}", node);
+                println!("  Visiting {:?}", *node);
             }
 
-            bfs.visited_node(node);
+            bfs.visited_node(&*node);
 
             let node_id = node.get_id();
             let futures_vec_copy = futures_vec_arc.clone();
