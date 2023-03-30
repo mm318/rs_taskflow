@@ -15,7 +15,7 @@ generate_task_output_iface_traits!(TaskOutput, get_output, 4);
 struct TestTask {}
 
 impl ExecutableTask for TestTask {
-    fn exec(&self, _flow: &Flow) {
+    fn exec(&mut self, _flow: &Flow) {
         unimplemented!();
     }
 }
