@@ -2,11 +2,12 @@
 name = "rs_taskflow"
 version = "0.1.0"
 authors = ["Miaofei <ameision@hotmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 rs_taskflow_derive = { path = "../rs_taskflow_derive" }
-tokio = { version = "1.7.1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
+dyn-clone = { version = "1.0.11" }
 
 [dev-dependencies]
 num = "0.4.0"
@@ -25,3 +26,7 @@ path = "tests/proc_macro_test.rs"
 [[test]]
 name = "flow_test"
 path = "tests/flow_test.rs"
+
+[[test]]
+name = "multiflow_test"
+path = "tests/multiflow_test.rs"
