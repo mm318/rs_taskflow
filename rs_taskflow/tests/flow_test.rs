@@ -3,7 +3,7 @@ mod example_tasks;
 use num::cast;
 use rs_taskflow::flow::Flow;
 
-use crate::example_tasks::{AddValuesTask, ForwardDataTask, SettableOutputTask};
+use crate::example_tasks::{OneInputOneOutputTask, TwoInputOneOutputTask, ZeroInputTwoOutputTask};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn main() {
@@ -15,10 +15,10 @@ async fn main() {
     //
     // create system components
     //
-    let input_task_handle = flow.add_new_task(SettableOutputTask::new(|| (42 as i32, 8 as u8)));
-    let task1_handle = flow.add_new_task(ForwardDataTask::new(|x: &i32| x.clone()));
-    let task2_handle = flow.add_new_task(ForwardDataTask::new(|x: &u8| x.clone()));
-    let last_task_handle = flow.add_new_task(AddValuesTask::new(|x: &i32, y: &u8| {
+    let input_task_handle = flow.add_new_task(ZeroInputTwoOutputTask::new(|| (42 as i32, 8 as u8)));
+    let task1_handle = flow.add_new_task(OneInputOneOutputTask::new(|x: &i32| x.clone()));
+    let task2_handle = flow.add_new_task(OneInputOneOutputTask::new(|x: &u8| x.clone()));
+    let last_task_handle = flow.add_new_task(TwoInputOneOutputTask::new(|x: &i32, y: &u8| {
         cast::<i32, i64>(x.clone()).unwrap() + cast::<u8, i64>(y.clone()).unwrap()
     }));
 

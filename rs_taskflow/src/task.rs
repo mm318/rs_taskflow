@@ -24,7 +24,6 @@ mod private {
 }
 
 pub trait ExecutableTask: AsAny + DynClone + Sync + Send {
-    // type TaskType = Self;
     fn exec(&mut self, flow: &Flow);
 }
 
