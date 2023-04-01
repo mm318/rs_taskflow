@@ -2,7 +2,6 @@
 
 use std::cmp::Eq;
 use std::collections::HashSet;
-use std::fmt::Debug;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::dag::node::{Node, NodeId};

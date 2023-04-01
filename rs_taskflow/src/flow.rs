@@ -30,13 +30,13 @@ impl<'a, T: 'static> TaskReadHandle<'a, T> {
         self.guard.get_value().as_ref()
     }
 
-    pub(crate) fn borrow_concrete(&self) -> &T {
-        (*self.guard)
-            .get_value()
-            .as_any()
-            .downcast_ref::<T>()
-            .unwrap()
-    }
+    // pub(crate) fn borrow_concrete(&self) -> &T {
+    //     (*self.guard)
+    //         .get_value()
+    //         .as_any()
+    //         .downcast_ref::<T>()
+    //         .unwrap()
+    // }
 }
 
 pub(crate) struct TaskWriteHandle<'a, T> {
@@ -75,7 +75,7 @@ impl Flow {
     pub(crate) fn get_task_by_id<T>(&self, task_id: usize) -> TaskReadHandle<T> {
         TaskReadHandle {
             guard: self.dag.get_node(task_id),
-            data_type: PhantomData
+            data_type: PhantomData,
         }
     }
 

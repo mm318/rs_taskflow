@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
 
 use crate::dag::dag::Dag;
 use crate::dag::node::{Node, NodeId};

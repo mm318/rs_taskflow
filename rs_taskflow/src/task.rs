@@ -88,8 +88,7 @@ impl<T> TaskInputHandle<T> {
     }
 
     pub fn get_value<'a, 'b>(&'a self, flow: &'b Flow) -> Option<&'b T> {
-        let task_handle = flow.get_task_by_id::<DummyTask>(self.source_task_id);    // calling task_handle.borrow_concrete() will panic
-        // (self.value_func)(task_handle.borrow())
+        let task_handle = flow.get_task_by_id::<DummyTask>(self.source_task_id); // calling task_handle.borrow_concrete() will panic
         let val_ref = (self.value_func)(task_handle.borrow());
         let val_ptr: *const T = val_ref.unwrap();
         unsafe { Some(&*val_ptr) }

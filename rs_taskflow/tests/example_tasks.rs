@@ -1,11 +1,8 @@
-use num::{cast, NumCast};
-use std::fmt::Debug;
+use num::NumCast;
 use std::ops::Add;
 
 use rs_taskflow::flow::Flow;
 use rs_taskflow::task::*;
-
-pub trait TaskParamReqs: 'static + Clone + Send + Sync {}
 
 //
 // Task that just simply outputs constant data
@@ -14,7 +11,7 @@ pub trait TaskParamReqs: 'static + Clone + Send + Sync {}
 pub struct SettableOutputTask<O1, O2, F> {
     output0: Option<O1>,
     output1: Option<O2>,
-    func: F
+    func: F,
 }
 
 impl<O1, O2, F: Fn() -> (O1, O2)> SettableOutputTask<O1, O2, F> {
@@ -27,19 +24,42 @@ impl<O1, O2, F: Fn() -> (O1, O2)> SettableOutputTask<O1, O2, F> {
     }
 }
 
-impl<O1: TaskParamReqs, O2: TaskParamReqs, F: Fn() -> (O1, O2) + 'static + Clone + Send + Sync> TaskOutput0<O1> for SettableOutputTask<O1, O2, F> {
+impl<
+        O1: 'static + Clone + Send + Sync,
+        O2: 'static + Clone + Send + Sync,
+        F: Fn() -> (O1, O2) + 'static + Clone + Send + Sync,
+    > TaskOutput0<O1> for SettableOutputTask<O1, O2, F>
+{
     fn get_output_0(task: &dyn ExecutableTask) -> Option<&O1> {
-        task.as_any().downcast_ref::<Self>().unwrap().output0.as_ref()
+        task.as_any()
+            .downcast_ref::<Self>()
+            .unwrap()
+            .output0
+            .as_ref()
     }
 }
 
-impl<O1: TaskParamReqs, O2: TaskParamReqs, F: Fn() -> (O1, O2) + 'static + Clone + Send + Sync> TaskOutput1<O1, O2> for SettableOutputTask<O1, O2, F> {
+impl<
+        O1: 'static + Clone + Send + Sync,
+        O2: 'static + Clone + Send + Sync,
+        F: Fn() -> (O1, O2) + 'static + Clone + Send + Sync,
+    > TaskOutput1<O1, O2> for SettableOutputTask<O1, O2, F>
+{
     fn get_output_1(task: &dyn ExecutableTask) -> Option<&O2> {
-        task.as_any().downcast_ref::<Self>().unwrap().output1.as_ref()
+        task.as_any()
+            .downcast_ref::<Self>()
+            .unwrap()
+            .output1
+            .as_ref()
     }
 }
 
-impl<O1: TaskParamReqs, O2: TaskParamReqs, F: Fn() -> (O1, O2) + 'static + Clone + Send + Sync> ExecutableTask for SettableOutputTask<O1, O2, F> {
+impl<
+        O1: 'static + Clone + Send + Sync,
+        O2: 'static + Clone + Send + Sync,
+        F: Fn() -> (O1, O2) + 'static + Clone + Send + Sync,
+    > ExecutableTask for SettableOutputTask<O1, O2, F>
+{
     fn exec(&mut self, _flow: &Flow) {
         let (o1, o2) = (self.func)();
         self.output0 = Some(o1);
@@ -67,19 +87,29 @@ impl<T: Clone, F: Fn(&T) -> T> ForwardDataTask<T, F> {
     }
 }
 
-impl<T: TaskParamReqs, F: Fn(&T) -> T + 'static + Clone + Send + Sync> TaskInput0<T> for ForwardDataTask<T, F> {
+impl<T: 'static + Clone + Send + Sync, F: Fn(&T) -> T + 'static + Clone + Send + Sync> TaskInput0<T>
+    for ForwardDataTask<T, F>
+{
     fn set_input_0(&mut self, task_input: TaskInputHandle<T>) {
         self.input_handle = Some(task_input);
     }
 }
 
-impl<T: TaskParamReqs, F: Fn(&T) -> T + 'static + Clone + Send + Sync> TaskOutput0<T> for ForwardDataTask<T, F> {
+impl<T: 'static + Clone + Send + Sync, F: Fn(&T) -> T + 'static + Clone + Send + Sync>
+    TaskOutput0<T> for ForwardDataTask<T, F>
+{
     fn get_output_0(task: &dyn ExecutableTask) -> Option<&T> {
-        task.as_any().downcast_ref::<Self>().unwrap().output.as_ref()
+        task.as_any()
+            .downcast_ref::<Self>()
+            .unwrap()
+            .output
+            .as_ref()
     }
 }
 
-impl<T: TaskParamReqs, F: Fn(&T) -> T + 'static + Clone + Send + Sync> ExecutableTask for ForwardDataTask<T, F> {
+impl<T: 'static + Clone + Send + Sync, F: Fn(&T) -> T + 'static + Clone + Send + Sync>
+    ExecutableTask for ForwardDataTask<T, F>
+{
     fn exec(&mut self, flow: &Flow) {
         match &self.input_handle {
             Some(input) => {
@@ -105,24 +135,28 @@ pub struct AddValuesTask<I1, I2, O, F> {
     func: F,
 }
 
-impl<I1: Clone + NumCast, I2: Clone + NumCast, O: NumCast + Add<Output = O>, F: Fn(&I1, &I2) -> O>
-    AddValuesTask<I1, I2, O, F>
+impl<
+        I1: Clone + NumCast,
+        I2: Clone + NumCast,
+        O: NumCast + Add<Output = O>,
+        F: Fn(&I1, &I2) -> O,
+    > AddValuesTask<I1, I2, O, F>
 {
     pub fn new(task_func: F) -> Self {
         Self {
             input0_handle: None,
             input1_handle: None,
             output: None,
-            func: task_func
+            func: task_func,
         }
     }
 }
 
 impl<
-        I1: TaskParamReqs + NumCast,
-        I2: TaskParamReqs + NumCast,
-        O: TaskParamReqs + NumCast + Add<Output = O>,
-        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync
+        I1: 'static + Clone + Send + Sync + NumCast,
+        I2: 'static + Clone + Send + Sync + NumCast,
+        O: 'static + Clone + Send + Sync + NumCast + Add<Output = O>,
+        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync,
     > TaskInput0<I1> for AddValuesTask<I1, I2, O, F>
 {
     fn set_input_0(&mut self, task_input: TaskInputHandle<I1>) {
@@ -131,10 +165,10 @@ impl<
 }
 
 impl<
-        I1: TaskParamReqs + NumCast,
-        I2: TaskParamReqs + NumCast,
-        O: TaskParamReqs + NumCast + Add<Output = O>,
-        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync
+        I1: 'static + Clone + Send + Sync + NumCast,
+        I2: 'static + Clone + Send + Sync + NumCast,
+        O: 'static + Clone + Send + Sync + NumCast + Add<Output = O>,
+        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync,
     > TaskInput1<I1, I2> for AddValuesTask<I1, I2, O, F>
 {
     fn set_input_1(&mut self, task_input: TaskInputHandle<I2>) {
@@ -143,22 +177,26 @@ impl<
 }
 
 impl<
-        I1: TaskParamReqs + NumCast,
-        I2: TaskParamReqs + NumCast,
-        O: TaskParamReqs + NumCast + Add<Output = O>,
-        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync
+        I1: 'static + Clone + Send + Sync + NumCast,
+        I2: 'static + Clone + Send + Sync + NumCast,
+        O: 'static + Clone + Send + Sync + NumCast + Add<Output = O>,
+        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync,
     > TaskOutput0<O> for AddValuesTask<I1, I2, O, F>
 {
     fn get_output_0(task: &dyn ExecutableTask) -> Option<&O> {
-        task.as_any().downcast_ref::<Self>().unwrap().output.as_ref()
+        task.as_any()
+            .downcast_ref::<Self>()
+            .unwrap()
+            .output
+            .as_ref()
     }
 }
 
 impl<
-        I1: TaskParamReqs + NumCast,
-        I2: TaskParamReqs + NumCast,
-        O: TaskParamReqs + NumCast + Add<Output = O>,
-        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync
+        I1: 'static + Clone + Send + Sync + NumCast,
+        I2: 'static + Clone + Send + Sync + NumCast,
+        O: 'static + Clone + Send + Sync + NumCast + Add<Output = O>,
+        F: Fn(&I1, &I2) -> O + 'static + Clone + Send + Sync,
     > ExecutableTask for AddValuesTask<I1, I2, O, F>
 {
     fn exec(&mut self, flow: &Flow) {
