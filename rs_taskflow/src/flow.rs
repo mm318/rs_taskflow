@@ -20,17 +20,17 @@ impl<T> TaskHandle<T> {
     }
 }
 
-pub struct TaskReadHandle<'a, T> {
+pub(crate) struct TaskReadHandle<'a, T> {
     guard: RwLockReadGuard<'a, Node<NodeDataBaseType>>,
     data_type: PhantomData<T>,
 }
 
 impl<'a, T: 'static> TaskReadHandle<'a, T> {
-    pub fn borrow(&self) -> &dyn ExecutableTask {
+    pub(crate) fn borrow(&self) -> &dyn ExecutableTask {
         self.guard.get_value().as_ref()
     }
 
-    pub fn borrow_concrete(&self) -> &T {
+    pub(crate) fn borrow_concrete(&self) -> &T {
         (*self.guard)
             .get_value()
             .as_any()
@@ -39,13 +39,13 @@ impl<'a, T: 'static> TaskReadHandle<'a, T> {
     }
 }
 
-pub struct TaskWriteHandle<'a, T> {
+pub(crate) struct TaskWriteHandle<'a, T> {
     guard: RwLockWriteGuard<'a, Node<NodeDataBaseType>>,
     data_type: PhantomData<T>,
 }
 
 impl<'a, T: 'static> TaskWriteHandle<'a, T> {
-    pub fn borrow_concrete(&mut self) -> &mut T {
+    pub(crate) fn borrow_concrete(&mut self) -> &mut T {
         (*self.guard)
             .get_mut_value()
             .as_mut_any()
@@ -79,11 +79,11 @@ impl Flow {
         }
     }
 
-    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle<T> {
+    pub(crate) fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle<T> {
         self.get_task_by_id(task_handle.id())
     }
 
-    pub fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
+    pub(crate) fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
         TaskWriteHandle {
             guard: self.dag.get_mut_node(task_handle.id()),
             data_type: PhantomData,

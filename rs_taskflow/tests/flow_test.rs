@@ -2,7 +2,6 @@ mod example_tasks;
 
 use num::cast;
 use rs_taskflow::flow::Flow;
-use rs_taskflow::task::TaskOutput0;
 
 use crate::example_tasks::{AddValuesTask, ForwardDataTask, SettableOutputTask, TaskParamReqs};
 
@@ -12,8 +11,6 @@ impl TaskParamReqs for i64 {}
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn main() {
-    type SimpleAdditionTask<F: Fn(&i32, &u8) -> i64> = AddValuesTask<i32, u8, i64, F>;
-
     //
     // declare system
     //
@@ -25,7 +22,7 @@ async fn main() {
     let input_task_handle = flow.add_new_task(SettableOutputTask::new(|| (42 as i32, 8 as u8)));
     let task1_handle = flow.add_new_task(ForwardDataTask::new(|x: &i32| x.clone()));
     let task2_handle = flow.add_new_task(ForwardDataTask::new(|x: &u8| x.clone()));
-    let last_task_handle = flow.add_new_task(SimpleAdditionTask::new(|x: &i32, y: &u8| cast::<i32, i64>(x.clone()).unwrap() + cast::<u8, i64>(y.clone()).unwrap()));
+    let last_task_handle = flow.add_new_task(AddValuesTask::new(|x: &i32, y: &u8| cast::<i32, i64>(x.clone()).unwrap() + cast::<u8, i64>(y.clone()).unwrap()));
 
     //
     // hook up system components
@@ -49,8 +46,7 @@ async fn main() {
     //
     // get the result of the system
     //
-    let read_handle = flow_exec.get_task(&last_task_handle);
-    let result = read_handle.borrow_concrete().get_output_0();
+    let result = flow_exec.get_task_output0(&last_task_handle);
     println!("result: {}", result.unwrap());
     assert_eq!(*result.unwrap(), 50);
 }
