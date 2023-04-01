@@ -8,13 +8,12 @@ use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use crate::dag::node::{Node, NodeId};
 use crate::dag::visit::DagVisitationInfo;
 
-#[derive(Debug)]
-pub struct Dag<T: Eq + Clone + Debug> {
+pub struct Dag<T: Eq + Clone> {
     nodes: Vec<RwLock<Node<T>>>,
     dependencies: Vec<HashSet<usize>>,
 }
 
-impl<T: Eq + Clone + Debug> Dag<T> {
+impl<T: Eq + Clone> Dag<T> {
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
@@ -83,7 +82,7 @@ impl<T: Eq + Clone + Debug> Dag<T> {
     }
 }
 
-impl<T: Eq + Clone + Debug> Clone for Dag<T> {
+impl<T: Eq + Clone> Clone for Dag<T> {
     fn clone(&self) -> Self {
         Self {
             nodes: Dag::copy_nodes(self),
@@ -97,7 +96,7 @@ impl<T: Eq + Clone + Debug> Clone for Dag<T> {
     }
 }
 
-impl<T: Eq + Clone + Debug> Default for Dag<T> {
+impl<T: Eq + Clone> Default for Dag<T> {
     fn default() -> Self {
         Self::new()
     }

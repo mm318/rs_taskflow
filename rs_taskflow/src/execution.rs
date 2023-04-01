@@ -126,7 +126,7 @@ impl Execution {
         let bfs = self.flow.get_flow_graph().build_bfs().unwrap();
         while let Some(node) = bfs.next() {
             if cfg!(debug_assertions) {
-                println!("  Visiting {:?}", *node);
+                println!("  Visiting node id {}", node.get_id());
             }
 
             bfs.visited_node(&*node);
@@ -146,7 +146,7 @@ impl Execution {
         self
     }
 
-    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle {
+    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle<T> {
         self.flow.get_task(task_handle)
     }
 }
