@@ -4,9 +4,10 @@
 use rs_taskflow::flow::{Flow, TaskHandle};
 use rs_taskflow::task::{ExecutableTask, TaskInputHandle};
 use rs_taskflow_derive::{
-    generate_connect_tasks_funcs, generate_task_input_iface_traits,
+    generate_connect_tasks_funcs, generate_get_task_output_funcs, generate_task_input_iface_traits,
     generate_task_output_iface_traits,
 };
+use std::marker::PhantomData;
 
 generate_task_input_iface_traits!(TaskInput, set_input, 4);
 generate_task_output_iface_traits!(TaskOutput, get_output, 4);
@@ -68,7 +69,15 @@ impl TaskOutput3<i32, u32, String, Option<bool>> for TestTask {
     }
 }
 
-struct FakeFlow {}
+struct TaskReadHandle<T>(PhantomData<T>);
+
+impl<T> TaskReadHandle<T> {
+    fn borrow(&self) -> &dyn ExecutableTask {
+        unimplemented!()
+    }
+}
+
+struct FakeFlow;
 
 impl FakeFlow {
     fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T>(
@@ -81,11 +90,24 @@ impl FakeFlow {
         unimplemented!()
     }
 
+    fn get_task<T>(&self, _task_handle: &TaskHandle<T>) -> TaskReadHandle<T> {
+        unimplemented!()
+    }
+
     generate_connect_tasks_funcs!(4);
+}
+
+struct FakeExecution {
+    flow: FakeFlow,
+}
+
+impl FakeExecution {
+    generate_get_task_output_funcs!(4);
 }
 
 #[test]
 fn works() {
     let _task = TestTask {};
     let _flow = FakeFlow {};
+    let _execution = FakeExecution { flow: _flow };
 }
