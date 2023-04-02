@@ -1,6 +1,6 @@
 mod gen_connect_tasks_helper;
-mod gen_task_traits_helper;
 mod gen_task_output_helper;
+mod gen_task_traits_helper;
 
 use quote::quote;
 
@@ -46,8 +46,7 @@ pub fn generate_task_output_iface_traits(
 
 #[proc_macro]
 pub fn generate_connect_tasks_funcs(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let options =
-        syn::parse_macro_input!(input as gen_connect_tasks_helper::TaskFlowOptions);
+    let options = syn::parse_macro_input!(input as gen_connect_tasks_helper::TaskFlowOptions);
 
     let mut result = quote! {};
     for i in 0..options.get_num_ports() {
@@ -62,8 +61,7 @@ pub fn generate_connect_tasks_funcs(input: proc_macro::TokenStream) -> proc_macr
 
 #[proc_macro]
 pub fn generate_get_task_output_funcs(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let options =
-        syn::parse_macro_input!(input as gen_connect_tasks_helper::TaskFlowOptions);
+    let options = syn::parse_macro_input!(input as gen_connect_tasks_helper::TaskFlowOptions);
 
     let mut result = quote! {};
     for i in 0..options.get_num_ports() {
