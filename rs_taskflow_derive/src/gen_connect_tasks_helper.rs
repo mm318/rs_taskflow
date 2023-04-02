@@ -5,21 +5,21 @@ extern crate syn;
 use quote::quote;
 use syn::parse::Parse;
 
-pub(super) struct ConnectTasksFuncsOptions {
+pub(super) struct TaskFlowOptions {
     num_ports: usize,
 }
 
-impl ConnectTasksFuncsOptions {
+impl TaskFlowOptions {
     pub(super) fn get_num_ports(&self) -> usize {
         self.num_ports
     }
 }
 
-impl Parse for ConnectTasksFuncsOptions {
+impl Parse for TaskFlowOptions {
     fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let num_lit = input.parse::<syn::LitInt>()?;
         let num = num_lit.base10_parse::<usize>()?;
-        Ok(ConnectTasksFuncsOptions { num_ports: num })
+        Ok(TaskFlowOptions { num_ports: num })
     }
 }
 

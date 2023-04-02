@@ -34,17 +34,7 @@ impl PartialEq for dyn ExecutableTask {
 }
 
 impl Eq for dyn ExecutableTask {}
-
 dyn_clone::clone_trait_object!(ExecutableTask);
-
-#[derive(Clone)]
-struct DummyTask;
-
-impl ExecutableTask for DummyTask {
-    fn exec(&mut self, _flow: &Flow) {
-        unimplemented!()
-    }
-}
 
 #[cfg(not(feature = "manual_task_ifaces"))]
 rs_taskflow_derive::generate_task_input_iface_traits!(TaskInput, set_input, 10);
@@ -65,6 +55,15 @@ pub trait TaskOutput0<O0>: ExecutableTask {
 #[cfg(feature = "manual_task_ifaces")]
 pub trait TaskOutput1<O0, O1>: TaskOutput0<O0> {
     fn get_output_1(task: &dyn ExecutableTask) -> Option<&O1>;
+}
+
+#[derive(Clone)]
+struct DummyTask;
+
+impl ExecutableTask for DummyTask {
+    fn exec(&mut self, _flow: &Flow) {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone)]

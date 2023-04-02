@@ -1,9 +1,31 @@
 mod example_tasks;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use num::cast;
 use rs_taskflow::flow::Flow;
 
 use crate::example_tasks::{OneInputOneOutputTask, TwoInputOneOutputTask, ZeroInputTwoOutputTask};
+
+struct OutputSelector {
+    possible_outputs: [(i32, u8); 2],
+    output_count: AtomicUsize,
+}
+
+impl OutputSelector {
+    pub const fn new() -> OutputSelector {
+        Self {
+            possible_outputs: [(42, 8), (20, 10)],
+            output_count: AtomicUsize::new(0)
+        }
+    }
+
+    pub fn get_output(&self) -> (i32, u8) {
+        let curr_count = self.output_count.fetch_add(1, Ordering::Relaxed);
+        self.possible_outputs[curr_count % self.possible_outputs.len()]
+    }
+}
+
+static OUTPUTTER: OutputSelector = OutputSelector::new();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn main() {
@@ -15,7 +37,7 @@ async fn main() {
     //
     // create system components
     //
-    let input_task_handle = flow.add_new_task(ZeroInputTwoOutputTask::new(|| (42 as i32, 8 as u8)));
+    let input_task_handle = flow.add_new_task(ZeroInputTwoOutputTask::new(|| OUTPUTTER.get_output()));
     let task1_handle = flow.add_new_task(OneInputOneOutputTask::new(|x: &i32| x.clone()));
     let task2_handle = flow.add_new_task(OneInputOneOutputTask::new(|x: &u8| x.clone()));
     let last_task_handle = flow.add_new_task(TwoInputOneOutputTask::new(|x: &i32, y: &u8| {
@@ -34,15 +56,6 @@ async fn main() {
         println!("Executing model with initial parameters");
     }
     let flow_exec1_future = flow.execute();
-
-    if cfg!(debug_assertions) {
-        println!("Updating model parameters");
-    }
-    // {
-    //     let mut write_handle = flow.get_mut_task(&input_task_handle);
-    //     write_handle.borrow_concrete().set_value0(20);
-    //     write_handle.borrow_concrete().set_value1(10);
-    // }
 
     if cfg!(debug_assertions) {
         println!("Executing model with updated parameters");

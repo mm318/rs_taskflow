@@ -8,7 +8,7 @@ use tokio::task::JoinHandle;
 
 use crate::dag::node::NodeId;
 use crate::flow::{Flow, TaskHandle};
-use crate::task::{TaskOutput0, TaskOutput1};
+use crate::task::*;
 
 struct ExecTaskJoinHandle {
     join_handle: JoinHandle<()>,
@@ -147,6 +147,8 @@ impl Execution {
         self
     }
 
+    #[cfg(not(feature = "manual_task_ifaces"))]
+    rs_taskflow_derive::generate_get_task_output_funcs!(10);
     #[cfg(feature = "manual_task_ifaces")]
     pub fn get_task_output0<O: 'static, T: TaskOutput0<O>>(
         &self,

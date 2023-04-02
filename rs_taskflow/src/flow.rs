@@ -72,6 +72,10 @@ impl Flow {
         }
     }
 
+    pub fn get_num_tasks(&self) -> usize {
+        self.dag.get_num_nodes()
+    }
+
     pub(crate) fn get_task_by_id<T>(&self, task_id: usize) -> TaskReadHandle<T> {
         TaskReadHandle {
             guard: self.dag.get_node(task_id),
@@ -143,10 +147,6 @@ impl Flow {
         task2_handle: &TaskHandle<B>,
     ) {
         self.connect(task1_handle, A::get_output_1, task2_handle, B::set_input_1);
-    }
-
-    pub fn get_num_tasks(&self) -> usize {
-        self.dag.get_num_nodes()
     }
 
     pub(crate) fn get_flow_graph(&self) -> &Dag<NodeDataBaseType> {
