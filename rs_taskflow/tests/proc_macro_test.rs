@@ -1,4 +1,3 @@
-#![allow(unused_imports)]
 #![allow(dead_code)]
 
 use rs_taskflow::flow::{Flow, TaskHandle};

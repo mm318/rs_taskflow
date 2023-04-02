@@ -5,19 +5,19 @@ extern crate syn;
 use quote::quote;
 use syn::parse::Parse;
 
-pub(super) struct TaskInterfaceOptions {
+pub(crate) struct TaskTraitOptions {
     trait_name: syn::Ident,
     function_name: syn::Ident,
     num: usize,
 }
 
-impl TaskInterfaceOptions {
-    pub(super) fn get_num(&self) -> usize {
+impl TaskTraitOptions {
+    pub(crate) fn get_num(&self) -> usize {
         self.num
     }
 }
 
-impl Parse for TaskInterfaceOptions {
+impl Parse for TaskTraitOptions {
     fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let ident1 = input.parse()?;
         input.parse::<syn::Token![,]>()?;
@@ -28,7 +28,7 @@ impl Parse for TaskInterfaceOptions {
         let n_lit = input.parse::<syn::LitInt>()?;
         let n = n_lit.base10_parse::<usize>()?;
 
-        Ok(TaskInterfaceOptions {
+        Ok(TaskTraitOptions {
             trait_name: ident1,
             function_name: ident2,
             num: n,
@@ -36,8 +36,8 @@ impl Parse for TaskInterfaceOptions {
     }
 }
 
-pub(super) fn generate_iface_trait_components(
-    options: &TaskInterfaceOptions,
+pub(crate) fn generate_iface_trait_components(
+    options: &TaskTraitOptions,
     trait_index: usize,
 ) -> (
     proc_macro2::TokenStream,
@@ -45,7 +45,7 @@ pub(super) fn generate_iface_trait_components(
     proc_macro2::TokenStream,
     proc_macro2::Ident,
 ) {
-    let TaskInterfaceOptions {
+    let TaskTraitOptions {
         trait_name,
         function_name,
         num: _,

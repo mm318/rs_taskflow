@@ -5,12 +5,12 @@ extern crate syn;
 use quote::quote;
 use syn::parse::Parse;
 
-pub(super) struct TaskFlowOptions {
+pub(crate) struct TaskFlowOptions {
     num_ports: usize,
 }
 
 impl TaskFlowOptions {
-    pub(super) fn get_num_ports(&self) -> usize {
+    pub(crate) fn get_num_ports(&self) -> usize {
         self.num_ports
     }
 }
@@ -23,7 +23,7 @@ impl Parse for TaskFlowOptions {
     }
 }
 
-pub(super) fn generate_connect_tasks_func(
+pub(crate) fn generate_connect_tasks_func(
     task1_oport_num: usize,
     task2_iport_num: usize,
 ) -> proc_macro2::TokenStream {

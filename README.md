@@ -16,8 +16,7 @@ flow.connect_output0_to_input0(&a, &b);
 flow.connect_output0_to_input0(&b, &c);
 
 let flow_exec = flow.execute().await;
-let handle = flow_exec.get_task(&c);
-let result = DefaultTask::get_output_0(handle.borrow());
+let result = flow_exec.get_output_0(&c);
 ```
 
 For a more complete example, see [flow_test.rs](rs_taskflow/tests/flow_test.rs).

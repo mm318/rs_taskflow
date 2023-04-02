@@ -4,7 +4,7 @@ extern crate syn;
 
 use quote::quote;
 
-pub(super) fn generate_get_task_output_func(oport_num: usize) -> proc_macro2::TokenStream {
+pub(crate) fn generate_get_task_output_func(oport_num: usize) -> proc_macro2::TokenStream {
     let func_name = quote::format_ident!("get_task_output{}", oport_num);
     let output_trait_name = quote::format_ident!("TaskOutput{}", oport_num);
     let output_func_name = quote::format_ident!("get_output_{}", oport_num);
