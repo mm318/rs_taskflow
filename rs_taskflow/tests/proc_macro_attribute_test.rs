@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use rs_taskflow::flow::Flow;
 use rs_taskflow::task::*;
 use rs_taskflow_derive::derive_task;

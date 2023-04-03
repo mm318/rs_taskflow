@@ -20,13 +20,19 @@ impl Parse for TaskInterfaceOptions {
 
         let input_types = match types_vec.get(0).unwrap() {
             syn::Type::Tuple(tuple) => Ok(tuple.elems.clone()),
-            t @ _ => Err(syn::Error::new_spanned(t, "expected a tuple of input types")),
+            t @ _ => Err(syn::Error::new_spanned(
+                t,
+                "expected a tuple of input types",
+            )),
         }
         .unwrap();
 
         let output_types = match types_vec.get(1).unwrap() {
             syn::Type::Tuple(tuple) => Ok(tuple.elems.clone()),
-            t @ _ => Err(syn::Error::new_spanned(t, "expected a tuple of output types")),
+            t @ _ => Err(syn::Error::new_spanned(
+                t,
+                "expected a tuple of output types",
+            )),
         }
         .unwrap();
 

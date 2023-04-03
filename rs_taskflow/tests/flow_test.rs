@@ -1,6 +1,7 @@
 mod example_tasks;
 
 use num::cast;
+
 use rs_taskflow::flow::Flow;
 
 use crate::example_tasks::{OneInputOneOutputTask, TwoInputOneOutputTask, ZeroInputTwoOutputTask};

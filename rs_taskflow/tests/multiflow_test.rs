@@ -1,8 +1,9 @@
 mod example_tasks;
 
 use num::cast;
-use rs_taskflow::flow::Flow;
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+use rs_taskflow::flow::Flow;
 
 use crate::example_tasks::{OneInputOneOutputTask, TwoInputOneOutputTask, ZeroInputTwoOutputTask};
 

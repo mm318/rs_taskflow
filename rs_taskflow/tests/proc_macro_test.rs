@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
+use std::marker::PhantomData;
+
 use rs_taskflow::flow::{Flow, TaskHandle};
 use rs_taskflow::task::{ExecutableTask, TaskInputHandle};
 use rs_taskflow_derive::{
     generate_connect_tasks_funcs, generate_get_task_output_funcs, generate_task_input_iface_traits,
     generate_task_output_iface_traits,
 };
-use std::marker::PhantomData;
 
 generate_task_input_iface_traits!(TaskInput, set_input, 4);
 generate_task_output_iface_traits!(TaskOutput, get_output, 4);
