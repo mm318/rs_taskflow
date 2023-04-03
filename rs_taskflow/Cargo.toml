@@ -34,3 +34,7 @@ path = "tests/flow_test.rs"
 [[test]]
 name = "multiflow_test"
 path = "tests/multiflow_test.rs"
+
+[[test]]
+name = "full_example_test"
+path = "tests/full_example_test.rs"

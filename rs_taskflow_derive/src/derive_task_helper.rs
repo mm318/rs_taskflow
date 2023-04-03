@@ -13,17 +13,20 @@ pub(crate) struct TaskInterfaceOptions {
 impl Parse for TaskInterfaceOptions {
     fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let types = input.parse_terminated(syn::Type::parse, syn::Token![,])?;
-        let types_vec: Vec<syn::Type> = types.into_iter().collect();
+        let types_vec: Vec<syn::Type> = types.clone().into_iter().collect();
+        if types_vec.len() != 2 {
+            return Err(syn::Error::new_spanned(types, "expected two tuples"));
+        }
 
         let input_types = match types_vec.get(0).unwrap() {
             syn::Type::Tuple(tuple) => Ok(tuple.elems.clone()),
-            t @ _ => Err(syn::Error::new_spanned(t, "expected a tuple type")),
+            t @ _ => Err(syn::Error::new_spanned(t, "expected a tuple of input types")),
         }
         .unwrap();
 
         let output_types = match types_vec.get(1).unwrap() {
             syn::Type::Tuple(tuple) => Ok(tuple.elems.clone()),
-            t @ _ => Err(syn::Error::new_spanned(t, "expected a tuple type")),
+            t @ _ => Err(syn::Error::new_spanned(t, "expected a tuple of output types")),
         }
         .unwrap();
 
@@ -54,7 +57,7 @@ impl TaskInterfaceOptions {
             let field_name = quote::format_ident!("output{}", i);
             struct_fields.extend(quote! {#field_name: Option<#output_type>,});
         }
-        struct_fields.extend(quote! {func: F});
+        struct_fields.extend(quote! {func: FuncType});
 
         struct_fields
     }
@@ -129,15 +132,15 @@ pub(crate) fn generate_task_struct_impls(
     let struct_fields = iface_options.get_struct_fields();
     let mut result = quote! {
         #[derive(Clone)]
-        #struct_visbility struct #struct_name<F> {
+        #struct_visbility struct #struct_name<FuncType> {
             #struct_fields
         }
     };
 
     let struct_field_inits = iface_options.get_struct_field_inits();
     result.extend(quote! {
-        impl<F> #struct_name<F> {
-            pub fn new(task_func: F) -> Self {
+        impl<FuncType> #struct_name<FuncType> {
+            pub fn new(task_func: FuncType) -> Self {
                 Self {
                     #struct_field_inits
                 }
@@ -183,7 +186,7 @@ pub(crate) fn generate_task_struct_impls(
     }
 
     result.extend(quote! {
-        impl<F: 'static + Clone + Send + Sync + #func_signature> ExecutableTask for #struct_name<F> {
+        impl<FuncType: 'static + Clone + Send + Sync + #func_signature> ExecutableTask for #struct_name<FuncType> {
             fn exec(&mut self, flow: &Flow) {
                 match (#input_handles) {
                     (#input_matches) => {
@@ -232,7 +235,7 @@ pub(crate) fn generate_task_input_impl(
     }
 
     quote! {
-        impl<F: 'static + Clone + Send + Sync + #func_signature> #trait_name<#trait_params> for #struct_name<F> {
+        impl<FuncType: 'static + Clone + Send + Sync + #func_signature> #trait_name<#trait_params> for #struct_name<FuncType> {
             fn #method_name(&mut self, task_input: TaskInputHandle<#input_type>) {
                 self.#field_name = Some(task_input);
             }
@@ -270,7 +273,7 @@ pub(crate) fn generate_task_output_impl(
     }
 
     quote! {
-        impl<F: 'static + Clone + Send + Sync + #func_signature> #trait_name<#trait_params> for #struct_name<F> {
+        impl<FuncType: 'static + Clone + Send + Sync + #func_signature> #trait_name<#trait_params> for #struct_name<FuncType> {
             fn #method_name(task: &dyn ExecutableTask) -> Option<&#output_type> {
                 task.as_any()
                     .downcast_ref::<Self>()
