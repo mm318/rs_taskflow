@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
 
 use crate::dag::dag::Dag;
 use crate::dag::node::{Node, NodeId};
@@ -12,14 +11,14 @@ enum CycleCheckStatus {
     Processed,
 }
 
-pub struct DagVisitationInfo<'a, T: Eq + Clone + Debug> {
+pub struct DagVisitationInfo<'a, T: Eq + Clone> {
     dag: &'a Dag<T>,
     dependants: Vec<HashSet<NodeId>>,            // downstream nodes
     dependencies: RefCell<Vec<HashSet<NodeId>>>, // upstream nodes
     roots: RefCell<HashSet<NodeId>>,
 }
 
-impl<'a, T: Eq + Clone + Debug> DagVisitationInfo<'a, T> {
+impl<'a, T: Eq + Clone> DagVisitationInfo<'a, T> {
     pub(crate) fn new(dag: &'a Dag<T>) -> Self {
         let len = dag.get_num_nodes();
 

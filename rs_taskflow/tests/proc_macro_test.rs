@@ -1,10 +1,11 @@
-#![allow(unused_imports)]
 #![allow(dead_code)]
+
+use std::marker::PhantomData;
 
 use rs_taskflow::flow::{Flow, TaskHandle};
 use rs_taskflow::task::{ExecutableTask, TaskInputHandle};
 use rs_taskflow_derive::{
-    generate_connect_tasks_funcs, generate_task_input_iface_traits,
+    generate_connect_tasks_funcs, generate_get_task_output_funcs, generate_task_input_iface_traits,
     generate_task_output_iface_traits,
 };
 
@@ -45,47 +46,68 @@ impl TaskInput3<i32, u32, String, Option<bool>> for TestTask {
 }
 
 impl TaskOutput0<i32> for TestTask {
-    fn get_output_0(_task: &dyn ExecutableTask) -> &i32 {
+    fn get_output_0(_task: &dyn ExecutableTask) -> Option<&i32> {
         unimplemented!();
     }
 }
 
 impl TaskOutput1<i32, u32> for TestTask {
-    fn get_output_1(_task: &dyn ExecutableTask) -> &u32 {
+    fn get_output_1(_task: &dyn ExecutableTask) -> Option<&u32> {
         unimplemented!();
     }
 }
 
 impl TaskOutput2<i32, u32, String> for TestTask {
-    fn get_output_2(_task: &dyn ExecutableTask) -> &String {
+    fn get_output_2(_task: &dyn ExecutableTask) -> Option<&String> {
         unimplemented!();
     }
 }
 
 impl TaskOutput3<i32, u32, String, Option<bool>> for TestTask {
-    fn get_output_3(_task: &dyn ExecutableTask) -> &Option<bool> {
+    fn get_output_3(_task: &dyn ExecutableTask) -> Option<&Option<bool>> {
         unimplemented!();
     }
 }
 
-struct FakeFlow {}
+struct TaskReadHandle<T>(PhantomData<T>);
+
+impl<T> TaskReadHandle<T> {
+    fn borrow(&self) -> &dyn ExecutableTask {
+        unimplemented!()
+    }
+}
+
+struct FakeFlow;
 
 impl FakeFlow {
     fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T>(
         &mut self,
         _task1_handle: &TaskHandle<A>,
-        _task1_output: fn(&dyn ExecutableTask) -> &T,
+        _task1_output: fn(&dyn ExecutableTask) -> Option<&T>,
         _task2_handle: &TaskHandle<B>,
         _task2_input: fn(&mut B, TaskInputHandle<T>),
     ) {
         unimplemented!()
     }
 
+    fn get_task<T>(&self, _task_handle: &TaskHandle<T>) -> TaskReadHandle<T> {
+        unimplemented!()
+    }
+
     generate_connect_tasks_funcs!(4);
+}
+
+struct FakeExecution {
+    flow: FakeFlow,
+}
+
+impl FakeExecution {
+    generate_get_task_output_funcs!(4);
 }
 
 #[test]
 fn works() {
     let _task = TestTask {};
     let _flow = FakeFlow {};
+    let _execution = FakeExecution { flow: _flow };
 }

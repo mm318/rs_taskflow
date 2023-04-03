@@ -20,23 +20,32 @@ impl<T> TaskHandle<T> {
     }
 }
 
-pub struct TaskReadHandle<'a> {
+pub(crate) struct TaskReadHandle<'a, T> {
     guard: RwLockReadGuard<'a, Node<NodeDataBaseType>>,
+    data_type: PhantomData<T>,
 }
 
-impl<'a> TaskReadHandle<'a> {
-    pub fn borrow(&self) -> &dyn ExecutableTask {
+impl<'a, T: 'static> TaskReadHandle<'a, T> {
+    pub(crate) fn borrow(&self) -> &dyn ExecutableTask {
         self.guard.get_value().as_ref()
     }
+
+    // pub(crate) fn borrow_concrete(&self) -> &T {
+    //     (*self.guard)
+    //         .get_value()
+    //         .as_any()
+    //         .downcast_ref::<T>()
+    //         .unwrap()
+    // }
 }
 
-pub struct TaskWriteHandle<'a, T> {
+pub(crate) struct TaskWriteHandle<'a, T> {
     guard: RwLockWriteGuard<'a, Node<NodeDataBaseType>>,
     data_type: PhantomData<T>,
 }
 
 impl<'a, T: 'static> TaskWriteHandle<'a, T> {
-    pub fn borrow_concrete(&mut self) -> &mut T {
+    pub(crate) fn borrow_concrete(&mut self) -> &mut T {
         (*self.guard)
             .get_mut_value()
             .as_mut_any()
@@ -63,17 +72,22 @@ impl Flow {
         }
     }
 
-    pub(crate) fn get_task_by_id(&self, task_id: usize) -> TaskReadHandle {
+    pub fn get_num_tasks(&self) -> usize {
+        self.dag.get_num_nodes()
+    }
+
+    pub(crate) fn get_task_by_id<T>(&self, task_id: usize) -> TaskReadHandle<T> {
         TaskReadHandle {
             guard: self.dag.get_node(task_id),
+            data_type: PhantomData,
         }
     }
 
-    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle {
+    pub(crate) fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle<T> {
         self.get_task_by_id(task_handle.id())
     }
 
-    pub fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
+    pub(crate) fn get_mut_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskWriteHandle<T> {
         TaskWriteHandle {
             guard: self.dag.get_mut_node(task_handle.id()),
             data_type: PhantomData,
@@ -83,7 +97,7 @@ impl Flow {
     fn connect<I, O, A: TaskOutput0<O>, B: TaskInput0<I>, T: 'static>(
         &mut self,
         task1_handle: &TaskHandle<A>,
-        task1_output: fn(&dyn ExecutableTask) -> &T,
+        task1_output: fn(&dyn ExecutableTask) -> Option<&T>,
         task2_handle: &TaskHandle<B>,
         task2_input: fn(&mut B, TaskInputHandle<T>),
     ) {
@@ -133,10 +147,6 @@ impl Flow {
         task2_handle: &TaskHandle<B>,
     ) {
         self.connect(task1_handle, A::get_output_1, task2_handle, B::set_input_1);
-    }
-
-    pub fn get_num_tasks(&self) -> usize {
-        self.dag.get_num_nodes()
     }
 
     pub(crate) fn get_flow_graph(&self) -> &Dag<NodeDataBaseType> {

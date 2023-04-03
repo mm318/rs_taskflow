@@ -1,18 +1,35 @@
 mod example_tasks;
 
+use num::cast;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use rs_taskflow::flow::Flow;
-use rs_taskflow::task::TaskOutput0;
 
-use crate::example_tasks::{AddValuesTask, ForwardDataTask, SettableOutputTask, TaskParamReqs};
+use crate::example_tasks::{OneInputOneOutputTask, TwoInputOneOutputTask, ZeroInputTwoOutputTask};
 
-impl TaskParamReqs for u8 {}
-impl TaskParamReqs for i32 {}
-impl TaskParamReqs for i64 {}
+struct OutputSelector {
+    possible_outputs: [(i32, u8); 2],
+    output_count: AtomicUsize,
+}
+
+impl OutputSelector {
+    pub const fn new() -> OutputSelector {
+        Self {
+            possible_outputs: [(42, 8), (20, 10)],
+            output_count: AtomicUsize::new(0),
+        }
+    }
+
+    pub fn get_output(&self) -> (i32, u8) {
+        let curr_count = self.output_count.fetch_add(1, Ordering::Relaxed);
+        self.possible_outputs[curr_count % self.possible_outputs.len()]
+    }
+}
+
+static OUTPUTTER: OutputSelector = OutputSelector::new();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn main() {
-    type SimpleAdditionTask = AddValuesTask<i32, u8, i64>;
-
     //
     // declare system
     //
@@ -21,10 +38,13 @@ async fn main() {
     //
     // create system components
     //
-    let input_task_handle = flow.add_new_task(SettableOutputTask::new(42 as i32, 8 as u8));
-    let task1_handle = flow.add_new_task(ForwardDataTask::new(1 as i32));
-    let task2_handle = flow.add_new_task(ForwardDataTask::new(2 as u8));
-    let last_task_handle = flow.add_new_task(SimpleAdditionTask::new(0));
+    let input_task_handle =
+        flow.add_new_task(ZeroInputTwoOutputTask::new(|| OUTPUTTER.get_output()));
+    let task1_handle = flow.add_new_task(OneInputOneOutputTask::new(|x: &i32| x.clone()));
+    let task2_handle = flow.add_new_task(OneInputOneOutputTask::new(|x: &u8| x.clone()));
+    let last_task_handle = flow.add_new_task(TwoInputOneOutputTask::new(|x: &i32, y: &u8| {
+        cast::<i32, i64>(x.clone()).unwrap() + cast::<u8, i64>(y.clone()).unwrap()
+    }));
 
     if cfg!(debug_assertions) {
         println!("Connecting dependent tasks");
@@ -40,15 +60,6 @@ async fn main() {
     let flow_exec1_future = flow.execute();
 
     if cfg!(debug_assertions) {
-        println!("Updating model parameters");
-    }
-    {
-        let mut write_handle = flow.get_mut_task(&input_task_handle);
-        write_handle.borrow_concrete().set_value0(20);
-        write_handle.borrow_concrete().set_value1(10);
-    }
-
-    if cfg!(debug_assertions) {
         println!("Executing model with updated parameters");
     }
     let flow_exec2_future = flow.execute();
@@ -57,14 +68,12 @@ async fn main() {
     // get the results of the systems
     //
     let flow_exec = flow_exec1_future.await;
-    let read_handle = flow_exec.get_task(&last_task_handle);
-    let result = SimpleAdditionTask::get_output_0(read_handle.borrow());
-    println!("first execution result: {}", result);
-    assert_eq!(*result, 50);
+    let result = flow_exec.get_task_output0(&last_task_handle);
+    println!("first execution result: {}", result.unwrap());
+    assert_eq!(*result.unwrap(), 50);
 
     let flow_exec = flow_exec2_future.await;
-    let read_handle = flow_exec.get_task(&last_task_handle);
-    let result = SimpleAdditionTask::get_output_0(read_handle.borrow());
-    println!("second execution result: {}", result);
-    assert_eq!(*result, 30);
+    let result = flow_exec.get_task_output0(&last_task_handle);
+    println!("second execution result: {}", result.unwrap());
+    assert_eq!(*result.unwrap(), 30);
 }

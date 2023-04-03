@@ -5,25 +5,25 @@ extern crate syn;
 use quote::quote;
 use syn::parse::Parse;
 
-pub(super) struct ConnectTasksFuncsOptions {
+pub(crate) struct TaskFlowOptions {
     num_ports: usize,
 }
 
-impl ConnectTasksFuncsOptions {
-    pub(super) fn get_num_ports(&self) -> usize {
+impl TaskFlowOptions {
+    pub(crate) fn get_num_ports(&self) -> usize {
         self.num_ports
     }
 }
 
-impl Parse for ConnectTasksFuncsOptions {
+impl Parse for TaskFlowOptions {
     fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let num_lit = input.parse::<syn::LitInt>()?;
         let num = num_lit.base10_parse::<usize>()?;
-        Ok(ConnectTasksFuncsOptions { num_ports: num })
+        Ok(TaskFlowOptions { num_ports: num })
     }
 }
 
-pub(super) fn generate_connect_tasks_func(
+pub(crate) fn generate_connect_tasks_func(
     task1_oport_num: usize,
     task2_iport_num: usize,
 ) -> proc_macro2::TokenStream {

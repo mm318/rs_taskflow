@@ -7,7 +7,8 @@ use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::dag::node::NodeId;
-use crate::flow::{Flow, TaskHandle, TaskReadHandle};
+use crate::flow::{Flow, TaskHandle};
+use crate::task::*;
 
 struct ExecTaskJoinHandle {
     join_handle: JoinHandle<()>,
@@ -126,7 +127,7 @@ impl Execution {
         let bfs = self.flow.get_flow_graph().build_bfs().unwrap();
         while let Some(node) = bfs.next() {
             if cfg!(debug_assertions) {
-                println!("  Visiting {:?}", *node);
+                println!("  Visiting node id {}", node.get_id());
             }
 
             bfs.visited_node(&*node);
@@ -146,7 +147,26 @@ impl Execution {
         self
     }
 
-    pub fn get_task<T>(&self, task_handle: &TaskHandle<T>) -> TaskReadHandle {
-        self.flow.get_task(task_handle)
+    #[cfg(not(feature = "manual_task_ifaces"))]
+    rs_taskflow_derive::generate_get_task_output_funcs!(10);
+    #[cfg(feature = "manual_task_ifaces")]
+    pub fn get_task_output0<O: 'static, T: TaskOutput0<O>>(
+        &self,
+        task_handle: &TaskHandle<T>,
+    ) -> Option<&O> {
+        let read_handle = self.flow.get_task(task_handle);
+        let val_ref = T::get_output_0(read_handle.borrow());
+        let val_ptr: *const O = val_ref.unwrap();
+        unsafe { Some(&*val_ptr) }
+    }
+    #[cfg(feature = "manual_task_ifaces")]
+    pub fn get_task_output1<O0, O: 'static, T: TaskOutput1<O0, O>>(
+        &self,
+        task_handle: &TaskHandle<T>,
+    ) -> Option<&O> {
+        let read_handle = self.flow.get_task(task_handle);
+        let val_ref = T::get_output_1(read_handle.borrow());
+        let val_ptr: *const O = val_ref.unwrap();
+        unsafe { Some(&*val_ptr) }
     }
 }

@@ -23,8 +23,7 @@ mod private {
     }
 }
 
-pub trait ExecutableTask: AsAny + DynClone + Sync + Send + Debug {
-    // type TaskType = Self;
+pub trait ExecutableTask: AsAny + DynClone + Sync + Send {
     fn exec(&mut self, flow: &Flow);
 }
 
@@ -35,7 +34,6 @@ impl PartialEq for dyn ExecutableTask {
 }
 
 impl Eq for dyn ExecutableTask {}
-
 dyn_clone::clone_trait_object!(ExecutableTask);
 
 #[cfg(not(feature = "manual_task_ifaces"))]
@@ -52,37 +50,46 @@ pub trait TaskInput1<I0, I1>: TaskInput0<I0> {
 }
 #[cfg(feature = "manual_task_ifaces")]
 pub trait TaskOutput0<O0>: ExecutableTask {
-    fn get_output_0(task: &dyn ExecutableTask) -> &O0;
+    fn get_output_0(task: &dyn ExecutableTask) -> Option<&O0>;
 }
 #[cfg(feature = "manual_task_ifaces")]
 pub trait TaskOutput1<O0, O1>: TaskOutput0<O0> {
-    fn get_output_1(task: &dyn ExecutableTask) -> &O1;
+    fn get_output_1(task: &dyn ExecutableTask) -> Option<&O1>;
+}
+
+#[derive(Clone)]
+struct DummyTask;
+
+impl ExecutableTask for DummyTask {
+    fn exec(&mut self, _flow: &Flow) {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone)]
 pub struct TaskInputHandle<T> {
     source_task_id: usize,
-    value_func: fn(&dyn ExecutableTask) -> &T,
+    value_func: fn(&dyn ExecutableTask) -> Option<&T>,
 }
 
 impl<T> TaskInputHandle<T> {
-    pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> &T) -> Self {
+    pub fn new(id: usize, func: fn(&dyn ExecutableTask) -> Option<&T>) -> Self {
         Self {
             source_task_id: id,
             value_func: func,
         }
     }
 
-    pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> &T) {
+    pub fn set(&mut self, id: usize, func: fn(&dyn ExecutableTask) -> Option<&T>) {
         self.source_task_id = id;
         self.value_func = func;
     }
 
-    pub fn get_value<'a, 'b>(&'a self, flow: &'b Flow) -> &'b T {
-        let task_handle = flow.get_task_by_id(self.source_task_id);
+    pub fn get_value<'a, 'b>(&'a self, flow: &'b Flow) -> Option<&'b T> {
+        let task_handle = flow.get_task_by_id::<DummyTask>(self.source_task_id); // calling task_handle.borrow_concrete() will panic
         let val_ref = (self.value_func)(task_handle.borrow());
-        let val_ptr: *const T = val_ref;
-        unsafe { &*val_ptr }
+        let val_ptr: *const T = val_ref.unwrap();
+        unsafe { Some(&*val_ptr) }
     }
 }
 
