@@ -3,9 +3,13 @@ name = "rs_taskflow"
 version = "0.1.0"
 authors = ["Miaofei <ameision@hotmail.com>"]
 edition = "2021"
+license = "MPL-2.0"
+description = "A library for executing graphs of tasks"
+repository = "https://github.com/mm318/rs_taskflow"
+readme = "../README.md"
 
 [dependencies]
-rs_taskflow_derive = { path = "../rs_taskflow_derive" }
+rs_taskflow_derive = { path = "../rs_taskflow_derive", version = "0.1.0" }
 tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
 dyn-clone = { version = "1.0.11" }
 
@@ -17,7 +21,8 @@ path = "src/lib.rs"
 crate-type = ["rlib", "dylib"]
 
 [features]
-manual_task_ifaces = []
+default = ["macro_task_ifaces"]
+macro_task_ifaces = []
 
 [[test]]
 name = "proc_macro_test"
@@ -26,6 +31,7 @@ path = "tests/proc_macro_test.rs"
 [[test]]
 name = "proc_macro_attribute_test"
 path = "tests/proc_macro_attribute_test.rs"
+required-features = ["macro_task_ifaces"]
 
 [[test]]
 name = "flow_test"
@@ -38,3 +44,4 @@ path = "tests/multiflow_test.rs"
 [[test]]
 name = "full_example_test"
 path = "tests/full_example_test.rs"
+required-features = ["macro_task_ifaces"]

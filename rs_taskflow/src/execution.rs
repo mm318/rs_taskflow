@@ -2,10 +2,9 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{Arc, Condvar, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::task::{Context, Poll, Waker};
 use std::thread;
-use std::time::Duration;
 
 use tokio::task;
 use tokio::task::JoinHandle;
@@ -145,9 +144,9 @@ impl Execution {
         self
     }
 
-    #[cfg(not(feature = "manual_task_ifaces"))]
+    #[cfg(feature = "macro_task_ifaces")]
     rs_taskflow_derive::generate_get_task_output_funcs!(10);
-    #[cfg(feature = "manual_task_ifaces")]
+    #[cfg(not(feature = "macro_task_ifaces"))]
     pub fn get_task_output0<O: 'static, T: TaskOutput0<O>>(
         &self,
         task_handle: &TaskHandle<T>,
@@ -157,7 +156,7 @@ impl Execution {
         let val_ptr: *const O = val_ref.unwrap();
         unsafe { Some(&*val_ptr) }
     }
-    #[cfg(feature = "manual_task_ifaces")]
+    #[cfg(not(feature = "macro_task_ifaces"))]
     pub fn get_task_output1<O0, O: 'static, T: TaskOutput1<O0, O>>(
         &self,
         task_handle: &TaskHandle<T>,

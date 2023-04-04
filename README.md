@@ -32,7 +32,19 @@ For a more complete example, see [full_example_test.rs](rs_taskflow/tests/full_e
 git clone https://github.com/mm318/rs_taskflow.git
 ```
 
-### Build and Test
+### Build
+For development iterations
+```bash
+# disables use of the macros in rs_taskflow_derive
+cargo test --no-default-features -- --nocapture
+```
+
+For testing build with more debug messages
+```bash
+cargo test -- --nocapture
+```
+
+For testing release build
 ```bash
 cargo test --release -- --nocapture
 ```
