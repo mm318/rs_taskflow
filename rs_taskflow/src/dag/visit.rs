@@ -13,8 +13,8 @@ enum CycleCheckStatus {
 
 pub struct DagVisitationInfo<'a, T: Eq + Clone> {
     dag: &'a Dag<T>,
-    dependants: Vec<HashSet<NodeId>>,            // downstream nodes
     dependencies: RefCell<Vec<HashSet<NodeId>>>, // upstream nodes
+    dependants: Vec<HashSet<NodeId>>,            // downstream nodes
     roots: RefCell<HashSet<NodeId>>,
 }
 
@@ -24,8 +24,8 @@ impl<'a, T: Eq + Clone> DagVisitationInfo<'a, T> {
 
         let mut result = Self {
             dag: dag,
-            dependants: Vec::with_capacity(len),
             dependencies: RefCell::new(Vec::with_capacity(len)),
+            dependants: Vec::with_capacity(len),
             roots: RefCell::new(HashSet::new()),
         };
 
@@ -103,7 +103,7 @@ impl<'a, T: Eq + Clone> DagVisitationInfo<'a, T> {
         self.roots.borrow_mut().remove(&node_id);
     }
 
-    fn get_roots(&self) -> Ref<HashSet<usize>> {
+    fn get_roots(&self) -> Ref<HashSet<NodeId>> {
         self.roots.borrow()
     }
 
@@ -114,7 +114,7 @@ impl<'a, T: Eq + Clone> DagVisitationInfo<'a, T> {
         }
     }
 
-    pub(crate) fn get_dependencies(&self, node_id: NodeId) -> Ref<HashSet<usize>> {
+    pub(crate) fn get_dependencies(&self, node_id: NodeId) -> Ref<HashSet<NodeId>> {
         Ref::map(self.dependencies.borrow(), |vec| &vec[node_id])
     }
 
@@ -122,7 +122,7 @@ impl<'a, T: Eq + Clone> DagVisitationInfo<'a, T> {
     //     self.dependencies[*to_node_id].remove(from_node_id);
     // }
 
-    fn get_dependants(&self, node_id: NodeId) -> &HashSet<usize> {
+    fn get_dependants(&self, node_id: NodeId) -> &HashSet<NodeId> {
         &self.dependants[node_id]
     }
 

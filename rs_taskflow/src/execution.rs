@@ -15,7 +15,6 @@ use crate::flow::{Flow, TaskHandle};
 use crate::task::*;
 
 struct ExecTask {
-    join_handle: Mutex<Option<JoinHandle<()>>>,
     waker: Mutex<Option<Waker>>,
     completed: AtomicBool,
 }
@@ -23,18 +22,21 @@ struct ExecTask {
 impl ExecTask {
     fn new() -> Self {
         Self {
-            join_handle: Mutex::new(None),
             waker: Mutex::new(None),
             completed: AtomicBool::new(false)
         }
     }
 
-    fn get_join_handle(&self) -> MutexGuard<Option<JoinHandle<()>>> {
-        self.join_handle.lock().unwrap()
-    }
-
     fn get_waker(&self) -> MutexGuard<Option<Waker>> {
         self.waker.lock().unwrap()
+    }
+
+    fn is_completed(&self) -> bool {
+        self.completed.load(Relaxed)
+    }
+
+    fn set_completed(&self) {
+        self.completed.store(true, Relaxed)
     }
 }
 
@@ -48,35 +50,21 @@ impl Future for ExecTaskFuture {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        for dep_node_id in self.flow.get_flow_graph().get_dependencies(self.node_id) {
-            if self.task_execs[*dep_node_id].completed.load(Relaxed) {
-                continue;
-            }
+        if cfg!(debug_assertions) {
+            println!(
+                "{:?} Visiting node id {} (waker: {:?})",
+                thread::current().id(),
+                self.node_id,
+                cx.waker()
+            );
+        }
+        *self.task_execs[self.node_id].get_waker() = Some(cx.waker().clone());
 
-            if cfg!(debug_assertions) {
-                println!(
-                    "{:?} Visiting node id {} (waker: {:?}) checking dependent node id {}",
-                    thread::current().id(),
-                    self.node_id,
-                    cx.waker(),
-                    *dep_node_id,
-                );
-            }
-            match Pin::new(
-                self.task_execs[*dep_node_id]
-                    .get_join_handle()
-                    .as_mut()
-                    .unwrap(),
-            )
-            .poll(cx)
-            {
-                Poll::Ready(_) => {
-                    continue;
-                }
-                Poll::Pending => {
-                    *self.task_execs[*dep_node_id].get_waker() = Some(cx.waker().clone());
-                    return Poll::Pending;
-                }
+        for dep_node_id in self.flow.get_flow_graph().get_dependencies(self.node_id) {
+            if self.task_execs[*dep_node_id].is_completed() {
+                continue;
+            } else {
+                return Poll::Pending;
             }
         }
 
@@ -86,25 +74,19 @@ impl Future for ExecTaskFuture {
             .get_mut_value()
             .exec(self.flow.as_ref());
 
-        self.task_execs[self.node_id].completed.store(true, Relaxed);
+        self.task_execs[self.node_id].set_completed();
 
-        if let Some(waker) = self.task_execs[self.node_id].get_waker().take() {
-            if cfg!(debug_assertions) {
-                println!(
-                    "{:?} Visited node id {} (waking: {:?})",
-                    thread::current().id(),
-                    self.node_id,
-                    waker
-                );
-            }
-            waker.wake();
-        } else {
-            if cfg!(debug_assertions) {
-                println!(
-                    "{:?} Visited node id {}",
-                    thread::current().id(),
-                    self.node_id,
-                );
+        for dep_node_id in self.flow.get_flow_graph().get_dependants(self.node_id) {
+            if let Some(waker) = self.task_execs[*dep_node_id].get_waker().take() {
+                if cfg!(debug_assertions) {
+                    println!(
+                        "{:?} Visited node id {} (waking: {:?})",
+                        thread::current().id(),
+                        self.node_id,
+                        waker
+                    );
+                }
+                waker.wake();
             }
         }
 
@@ -121,18 +103,16 @@ impl Execution {
         Execution { flow: flow }
     }
 
-    fn spawn_exec_task(&self, node_id: usize, task_execs_ref: &Arc<Vec<ExecTask>>) {
+    fn spawn_exec_task(&self, node_id: NodeId, task_execs_ref: &Arc<Vec<ExecTask>>) -> JoinHandle<()> {
         if cfg!(debug_assertions) {
             println!("Spawning task for node id {}", node_id);
         }
 
-        let join_handle = task::spawn(ExecTaskFuture {
+        task::spawn(ExecTaskFuture {
             flow: self.flow.clone(),
             node_id,
             task_execs: task_execs_ref.clone(),
-        });
-
-        *task_execs_ref[node_id].get_join_handle() = Some(join_handle);
+        })
     }
 
     pub async fn start_and_finish(self) -> Self {
@@ -143,35 +123,18 @@ impl Execution {
         }
         let task_execs = Arc::new(task_execs_vec);
 
+        let mut join_handles = Vec::<JoinHandle<()>>::with_capacity(len);
         let bfs = self.flow.get_flow_graph().build_bfs().unwrap();
         while let Some(node) = bfs.next() {
             bfs.visited_node(&*node);
-            self.spawn_exec_task(node.get_id(), &task_execs);
+            let join_handle = self.spawn_exec_task(node.get_id(), &task_execs);
+            join_handles.push(join_handle);
         }
 
-        let bfs = self.flow.get_flow_graph().build_bfs().unwrap();
-        while let Some(node) = bfs.next() {
-            bfs.visited_node(&*node);
-            let id = node.get_id();
-            while !task_execs[id].completed.load(Relaxed) {
-                if cfg!(debug_assertions) {
-                    println!("{:?} Waiting on node id {}", thread::current().id(), id);
-                }
-
-                // let result = task_exec
-                //     .condvar
-                //     .wait_timeout(task_exec.lock(), Duration::from_secs(1))
-                //     .unwrap();
-                // if result.1.timed_out() {
-                //     continue;
-                // } else {
-                //     break;
-                // }
-
-                thread::sleep(Duration::from_secs(1));
-            }
-            if cfg!(debug_assertions) {
-                println!("{:?} Node id {} is complete", thread::current().id(), id);
+        for (node_id, join_handle) in join_handles.into_iter().enumerate() {
+            if !task_execs[node_id].is_completed() {
+                let result = join_handle.await;
+                assert!(result.is_ok());
             }
         }
 
