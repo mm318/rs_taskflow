@@ -1,7 +1,11 @@
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
-use std::task::{Context, Poll};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::Relaxed;
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::task::{Context, Poll, Waker};
+use std::thread;
+use std::time::Duration;
 
 use tokio::task;
 use tokio::task::JoinHandle;
@@ -10,57 +14,57 @@ use crate::dag::node::NodeId;
 use crate::flow::{Flow, TaskHandle};
 use crate::task::*;
 
-struct ExecTaskJoinHandle {
-    join_handle: JoinHandle<()>,
-    completed: bool,
-}
-
 struct ExecTask {
-    lock: Mutex<Option<ExecTaskJoinHandle>>,
-    condvar: Condvar,
+    waker: Mutex<Option<Waker>>,
+    completed: AtomicBool,
 }
 
 impl ExecTask {
     fn new() -> Self {
         Self {
-            lock: Mutex::new(Option::None),
-            condvar: Condvar::new(),
+            waker: Mutex::new(None),
+            completed: AtomicBool::new(false),
         }
     }
 
-    fn lock(&self) -> MutexGuard<Option<ExecTaskJoinHandle>> {
-        return self.lock.lock().unwrap();
+    fn get_waker(&self) -> MutexGuard<Option<Waker>> {
+        self.waker.lock().unwrap()
     }
 
-    fn notify(&self) {
-        self.condvar.notify_all();
+    fn is_completed(&self) -> bool {
+        self.completed.load(Relaxed)
+    }
+
+    fn set_completed(&self) {
+        self.completed.store(true, Relaxed)
     }
 }
 
 struct ExecTaskFuture {
     flow: Arc<Flow>,
     node_id: NodeId,
-    futures: Arc<Vec<ExecTask>>,
+    task_execs: Arc<Vec<ExecTask>>,
 }
 
 impl Future for ExecTaskFuture {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        for from_node_id in self.flow.get_flow_graph().get_dependencies(self.node_id) {
-            if cfg!(debug_assertions) && self.futures[*from_node_id].lock().is_none() {
-                println!("Node {} is missing a future / join handle!", *from_node_id)
-            }
+        if cfg!(debug_assertions) {
+            println!(
+                "{:?} Visiting node id {} (waker: {:?})",
+                thread::current().id(),
+                self.node_id,
+                cx.waker()
+            );
+        }
+        *self.task_execs[self.node_id].get_waker() = Some(cx.waker().clone());
 
-            let mut locked_guard = self.futures[*from_node_id].lock();
-            let join_handle = locked_guard.as_mut().unwrap();
-            if join_handle.completed {
+        for dep_node_id in self.flow.get_flow_graph().get_dependencies(self.node_id) {
+            if self.task_execs[*dep_node_id].is_completed() {
                 continue;
             } else {
-                match Pin::new(&mut join_handle.join_handle).poll(cx) {
-                    Poll::Ready(_) => continue,
-                    Poll::Pending => return Poll::Pending,
-                }
+                return Poll::Pending;
             }
         }
 
@@ -70,12 +74,21 @@ impl Future for ExecTaskFuture {
             .get_mut_value()
             .exec(self.flow.as_ref());
 
-        self.futures[self.node_id]
-            .lock()
-            .as_mut()
-            .unwrap()
-            .completed = true;
-        self.futures[self.node_id].notify();
+        self.task_execs[self.node_id].set_completed();
+
+        for dep_node_id in self.flow.get_flow_graph().get_dependants(self.node_id) {
+            if let Some(waker) = self.task_execs[*dep_node_id].get_waker().take() {
+                if cfg!(debug_assertions) {
+                    println!(
+                        "{:?} Visited node id {} (waking: {:?})",
+                        thread::current().id(),
+                        self.node_id,
+                        waker
+                    );
+                }
+                waker.wake();
+            }
+        }
 
         Poll::Ready(())
     }
@@ -90,57 +103,42 @@ impl Execution {
         Execution { flow: flow }
     }
 
-    fn spawn_exec_task(&self, node_id: usize, futures: Arc<Vec<ExecTask>>) {
-        // if cfg!(debug_assertions) {
-        //     println!("Adding future for node {}", node_id);
-        // }
+    fn spawn_exec_task(
+        &self,
+        node_id: NodeId,
+        task_execs_ref: &Arc<Vec<ExecTask>>,
+    ) -> JoinHandle<()> {
+        if cfg!(debug_assertions) {
+            println!("Spawning task for node id {}", node_id);
+        }
 
-        let task_future = task::spawn(ExecTaskFuture {
+        task::spawn(ExecTaskFuture {
             flow: self.flow.clone(),
             node_id,
-            futures: futures.clone(),
-        });
-        *futures[node_id].lock() = Option::Some(ExecTaskJoinHandle {
-            join_handle: task_future,
-            completed: false,
-        });
-
-        // if cfg!(debug_assertions) {
-        //     match *futures.clone()[node_id].lock() {
-        //         Option::Some(_) => println!("Node {} has a future!", node_id),
-        //         Option::None => println!("Node {} has no future!", node_id),
-        //     }
-        // }
+            task_execs: task_execs_ref.clone(),
+        })
     }
 
     pub async fn start_and_finish(self) -> Self {
         let len = self.flow.get_num_tasks();
-
-        let mut futures_vec = Vec::<ExecTask>::with_capacity(len);
+        let mut task_execs_vec = Vec::<ExecTask>::with_capacity(len);
         for _ in 0..len {
-            futures_vec.push(ExecTask::new());
+            task_execs_vec.push(ExecTask::new());
         }
+        let task_execs = Arc::new(task_execs_vec);
 
-        // each future will have a copy of this Arc
-        let futures_vec_arc = Arc::new(futures_vec);
-
+        let mut join_handles = Vec::<JoinHandle<()>>::with_capacity(len);
         let bfs = self.flow.get_flow_graph().build_bfs().unwrap();
         while let Some(node) = bfs.next() {
-            if cfg!(debug_assertions) {
-                println!("  Visiting node id {}", node.get_id());
-            }
-
             bfs.visited_node(&*node);
-
-            let node_id = node.get_id();
-            let futures_vec_copy = futures_vec_arc.clone();
-            self.spawn_exec_task(node_id, futures_vec_copy);
+            let join_handle = self.spawn_exec_task(node.get_id(), &task_execs);
+            join_handles.push(join_handle);
         }
 
-        for future_iter in futures_vec_arc.iter() {
-            let mut locked_guard = future_iter.lock();
-            while !locked_guard.as_ref().unwrap().completed {
-                locked_guard = future_iter.condvar.wait(locked_guard).unwrap();
+        for (node_id, join_handle) in join_handles.into_iter().enumerate() {
+            if !task_execs[node_id].is_completed() {
+                let result = join_handle.await;
+                assert!(result.is_ok());
             }
         }
 

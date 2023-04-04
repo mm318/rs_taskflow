@@ -9,7 +9,8 @@ use crate::dag::visit::DagVisitationInfo;
 
 pub struct Dag<T: Eq + Clone> {
     nodes: Vec<RwLock<Node<T>>>,
-    dependencies: Vec<HashSet<usize>>,
+    dependencies: Vec<HashSet<NodeId>>, // upstream nodes
+    dependants: Vec<HashSet<NodeId>>,   // downstream nodes
 }
 
 impl<T: Eq + Clone> Dag<T> {
@@ -17,6 +18,7 @@ impl<T: Eq + Clone> Dag<T> {
         Self {
             nodes: Vec::new(),
             dependencies: Vec::new(),
+            dependants: Vec::new(),
         }
     }
 
@@ -24,11 +26,13 @@ impl<T: Eq + Clone> Dag<T> {
         let id = self.nodes.len() as NodeId;
         self.nodes.push(RwLock::new(Node::new(id, value)));
         self.dependencies.push(HashSet::new());
+        self.dependants.push(HashSet::new());
         id
     }
 
-    pub fn connect(&mut self, from_node_id: usize, to_node_id: usize) {
-        self.dependencies[to_node_id].insert(from_node_id);
+    pub fn connect(&mut self, from_node_id: NodeId, to_node_id: NodeId) {
+        self.dependencies[to_node_id].insert(from_node_id); // dependencies are upstream
+        self.dependants[from_node_id].insert(to_node_id); // dependants are downstream
     }
 
     pub fn get_num_nodes(&self) -> usize {
@@ -48,8 +52,12 @@ impl<T: Eq + Clone> Dag<T> {
     //     self.nodes.iter()
     // }
 
-    pub fn get_dependencies(&self, node_id: NodeId) -> &HashSet<usize> {
+    pub fn get_dependencies(&self, node_id: NodeId) -> &HashSet<NodeId> {
         &self.dependencies[node_id]
+    }
+
+    pub fn get_dependants(&self, node_id: NodeId) -> &HashSet<NodeId> {
+        &self.dependants[node_id]
     }
 
     // find roots
@@ -86,12 +94,14 @@ impl<T: Eq + Clone> Clone for Dag<T> {
         Self {
             nodes: Dag::copy_nodes(self),
             dependencies: self.dependencies.clone(),
+            dependants: self.dependants.clone(),
         }
     }
 
     fn clone_from(&mut self, source: &Self) {
         self.nodes = Dag::copy_nodes(source);
         self.dependencies = source.dependencies.clone();
+        self.dependants = source.dependants.clone();
     }
 }
 
